@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shop-config
+  namespace: shop
+data:
+  DEPENDENCY_CHECKS_ENABLED: "true"
+

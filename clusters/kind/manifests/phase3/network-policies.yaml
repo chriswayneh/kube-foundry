@@ -1,0 +1,141 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: kube-foundry
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: kube-foundry
+spec:
+  podSelector: {}
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-data-egress
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: kube-foundry
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: api
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: postgres
+      ports:
+        - {protocol: TCP, port: 5432}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: redis
+      ports:
+        - {protocol: TCP, port: 6379}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-worker-data-egress
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: kube-foundry
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: worker
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: postgres
+      ports:
+        - {protocol: TCP, port: 5432}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: redis
+      ports:
+        - {protocol: TCP, port: 6379}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-postgres-ingress
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: kube-foundry
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: postgres
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: ["api", "worker"]
+      ports:
+        - {protocol: TCP, port: 5432}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-redis-ingress
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: kube-foundry
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: redis
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: ["api", "worker"]
+      ports:
+        - {protocol: TCP, port: 6379}
+

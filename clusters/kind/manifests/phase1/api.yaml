@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: kube-foundry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: shop
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: shop
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: kube-foundry
+    spec:
+      containers:
+        - name: api
+          image: kube-foundry-api:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: shop
+  labels:
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: kube-foundry
+spec:
+  selector:
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/component: api
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+

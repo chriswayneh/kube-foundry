@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: shop
+spec:
+  template:
+    metadata:
+      annotations:
+        kube-foundry.dev/config-revision: phase3
+

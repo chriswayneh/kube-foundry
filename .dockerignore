@@ -1,0 +1,12 @@
+.git
+.github
+.env
+.env.*
+docs
+clusters
+charts
+gitops
+policy
+__pycache__
+*.pyc
+
