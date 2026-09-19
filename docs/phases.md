@@ -70,7 +70,7 @@ Phases 1-8 deliver the platform. Phase 9 closes the v1.0 release; optional enhan
 - [x] Back up PostgreSQL and verify restoration into a separate database
 - [x] Capture actual Argo CD and Grafana screenshots without credentials
 - [x] Publish setup, upgrade, recovery, teardown, and verification instructions
-- [ ] Publish v1.0.0 with release notes and recorded acceptance evidence
+- [x] Publish v1.0.0 with release notes and recorded acceptance evidence
 
 ## Optional post-v1.0 backlog
 

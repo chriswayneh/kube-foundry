@@ -43,6 +43,15 @@ python scripts/check-recovery.py --context kind-kube-foundry-release
 
 The drill saves the known-good Application source, temporarily pauses root auto-sync, and sets a child Application image override to an explicitly nonexistent tag. It requires an actual image-pull failure while at least two known-good API replicas remain available. A `finally` block restores the original source and root automation, then waits for the known-good image and healthy Argo status.
 
-This is an Argo parameter-override rollback exercise, not a production Git revert or database rollback. It publishes no deliberately broken commit. If the process or host is forcibly terminated before cleanup, run `python scripts/bootstrap-gitops.py --revision <known-good-revision>` and `make verify` in the disposable cluster. Never run the drill against a live service.
+This is an Argo parameter-override rollback exercise, not a production Git revert or database rollback. It publishes no deliberately broken commit. If the process or host is forcibly terminated before cleanup, explicitly resume root automation in the disposable cluster, then restore the reviewed source:
+
+```bash
+kubectl --context kind-kube-foundry-release -n argocd patch application kube-foundry --type merge \
+  -p '{"spec":{"syncPolicy":{"automated":{"enabled":true}}}}'
+python scripts/bootstrap-gitops.py --revision v1.0.0
+make verify
+```
+
+Use the disposable cluster's kubeconfig for all three commands. Never run the drill against a live service.
 
 References: PostgreSQL [pg_dump](https://www.postgresql.org/docs/17/app-pgdump.html) and [pg_restore](https://www.postgresql.org/docs/17/app-pgrestore.html).

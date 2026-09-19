@@ -69,7 +69,7 @@ Cluster deletion removes the cluster's local PostgreSQL, Redis, and Prometheus v
 
 ## Acceptance record
 
-Release acceptance was exercised on 2026-09-19 using a new `kube-foundry-release` cluster and independent credentials. No existing development PVC was reused. The clean bootstrap first pinned root and child Applications to known-good source `f2b408061a0669423767137b92713688be48b229`, using the release installer in this checkout. The final release candidate is then re-pinned and verified before tagging.
+Release acceptance was exercised on 2026-09-19 using a new `kube-foundry-release` cluster and independent credentials. No existing development PVC was reused. The clean bootstrap first pinned root and child Applications to known-good source `f2b408061a0669423767137b92713688be48b229`, using the release installer in this checkout. A fresh GitHub clone was then used to validate and reapply the candidate. The final [delivery run](https://github.com/chriswayneh/kube-foundry/actions/runs/35467221347) passed static validation, 11 unit tests, all three image scans/publications, anonymous digest resolution, and the GitOps image update. The tagged revision is verified before publishing the GitHub release.
 
 | Check | Outcome |
 | --- | --- |
