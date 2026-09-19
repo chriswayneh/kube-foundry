@@ -58,4 +58,4 @@ Every phase must end with healthy workloads, updated documentation, and reproduc
 
 - [x] Add Argo CD root/child applications and pinned installation
 - [x] Add PR validation/scanning and main image-publish/update workflows
-- [ ] Verify GitHub delivery and live Argo reconciliation end to end
+- [x] Verify GitHub delivery, anonymous GHCR pulls, digest rollout, and live Argo self-healing (2026-09-19)

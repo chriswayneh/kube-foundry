@@ -18,7 +18,7 @@
 
 ## ADR-004: Argo CD instead of Flux
 
-**Status:** accepted for phase 8. **Decision:** use Argo CD and its app-of-apps pattern. **Why:** the application tree and health model make ownership, reconciliation, and deployment state directly inspectable during release validation. **Consequence:** Argo CD adds a comparatively large local footprint; its chart values will use a slim profile.
+**Status:** implemented in phase 8. **Decision:** use Argo CD and its app-of-apps pattern. **Why:** the application tree and health model make ownership, reconciliation, and deployment state directly inspectable during release validation. **Consequence:** a slim local installation reconciles platform configuration and shop; pinned controller Helm releases remain an explicit bootstrap boundary. Automatic pruning is disabled to protect local data. See [GitOps ownership and delivery](gitops.md).
 
 ## ADR-005: default-deny NetworkPolicies
 

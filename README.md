@@ -91,6 +91,8 @@ make cluster-delete
 - Prometheus scrapes the API and Grafana loads its provisioned dashboard
 - CPU load scales the API up, then it returns to its minimum replica count
 - Eviction dry-runs allow a redundant API Pod and protect the singleton database
+- GitHub Actions publishes scanned images and commits anonymously pullable GHCR digests
+- Argo CD deploys those digests and corrects manual replica drift
 
 The exact commands and failure notes are in [docs/failures.md](docs/failures.md). Architecture notes and tradeoffs are in [docs/architecture.md](docs/architecture.md) and [docs/decisions.md](docs/decisions.md).
 

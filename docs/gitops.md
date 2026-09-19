@@ -75,4 +75,8 @@ Open `https://127.0.0.1:8081` while the loopback port-forward runs. Argo's local
 
 Automatic sync and self-healing are enabled; automatic pruning and cascading Application deletion are deliberately absent. Removing a manifest from Git does not delete the live resource. Review removals manually, especially namespaces and persistent storage. To roll back an image, revert the digest-update commit and let Argo reconcile it. A Git rollback is not a database restore and may be incompatible with future schema changes.
 
+## Verification record
+
+On 2026-09-19, [GitHub delivery run 35465793504](https://github.com/chriswayneh/kube-foundry/actions/runs/35465793504) passed validation, all three builds/scans/publications, anonymous manifest access, and the digest-update commit. Argo reconciled delivery commit `667b2da21ea202253646320f366b2c7b44a84063`; live API, worker, and web Deployments used the published GHCR digests. Root and child Applications reached Synced/Healthy. A deliberate web replica change from two to three was automatically corrected to two. HTTPS application smoke tests, security checks, and monitoring checks were exercised against the new runtime.
+
 References: [Argo automated sync](https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/), [resource tracking](https://argo-cd.readthedocs.io/en/stable/user-guide/resource_tracking/), and [GHCR access and visibility](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry).
