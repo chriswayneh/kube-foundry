@@ -196,6 +196,54 @@ spec:
   - Ingress
   - Egress
 ---
+# Source: shop/templates/serviceaccounts.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api
+  namespace: shop
+automountServiceAccountToken: false
+---
+# Source: shop/templates/serviceaccounts.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web
+  namespace: shop
+automountServiceAccountToken: false
+---
+# Source: shop/templates/serviceaccounts.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: worker
+  namespace: shop
+automountServiceAccountToken: false
+---
+# Source: shop/templates/serviceaccounts.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postgres
+  namespace: shop
+automountServiceAccountToken: false
+---
+# Source: shop/templates/serviceaccounts.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: redis
+  namespace: shop
+automountServiceAccountToken: false
+---
+# Source: shop/templates/serviceaccounts.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shop-observer
+  namespace: shop
+automountServiceAccountToken: false
+---
 # Source: shop/templates/configmap-shop-config.yaml
 apiVersion: v1
 data:
@@ -227,6 +275,35 @@ spec:
   resources:
     requests:
       storage: "512Mi"
+---
+# Source: shop/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: shop-observer
+  namespace: shop
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "endpoints", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+---
+# Source: shop/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: shop-observer
+  namespace: shop
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: shop-observer
+subjects:
+  - kind: ServiceAccount
+    name: shop-observer
+    namespace: shop
 ---
 # Source: shop/templates/service-api.yaml
 apiVersion: v1
@@ -325,6 +402,8 @@ spec:
         app.kubernetes.io/name: shop
         app.kubernetes.io/part-of: kube-foundry
     spec:
+      serviceAccountName: api
+      automountServiceAccountToken: false
       containers:
       - env:
         - name: POSTGRES_DB
@@ -430,6 +509,8 @@ spec:
         app.kubernetes.io/name: shop
         app.kubernetes.io/part-of: kube-foundry
     spec:
+      serviceAccountName: redis
+      automountServiceAccountToken: false
       containers:
       - args:
         - exec redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"
@@ -516,6 +597,8 @@ spec:
         app.kubernetes.io/name: shop
         app.kubernetes.io/part-of: kube-foundry
     spec:
+      serviceAccountName: web
+      automountServiceAccountToken: false
       containers:
       - image: "kube-foundry-web:0.1.0"
         imagePullPolicy: IfNotPresent
@@ -587,6 +670,8 @@ spec:
         app.kubernetes.io/name: shop
         app.kubernetes.io/part-of: kube-foundry
     spec:
+      serviceAccountName: worker
+      automountServiceAccountToken: false
       containers:
       - env:
         - name: POSTGRES_DB
@@ -668,6 +753,8 @@ spec:
         app.kubernetes.io/name: shop
         app.kubernetes.io/part-of: kube-foundry
     spec:
+      serviceAccountName: postgres
+      automountServiceAccountToken: false
       containers:
       - env:
         - name: POSTGRES_DB

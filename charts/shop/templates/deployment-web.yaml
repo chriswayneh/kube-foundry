@@ -15,6 +15,8 @@ spec:
         app.kubernetes.io/name: shop
         app.kubernetes.io/part-of: kube-foundry
     spec:
+      serviceAccountName: web
+      automountServiceAccountToken: false
       containers:
       - image: {{ .Values.web.image | quote }}
         imagePullPolicy: IfNotPresent

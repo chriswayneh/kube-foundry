@@ -17,4 +17,5 @@ Thumbs.db
 
 .tools/
 *.log
-
+*.agekey
+*.decrypted.yaml

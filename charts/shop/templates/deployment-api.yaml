@@ -22,6 +22,8 @@ spec:
         app.kubernetes.io/name: shop
         app.kubernetes.io/part-of: kube-foundry
     spec:
+      serviceAccountName: api
+      automountServiceAccountToken: false
       containers:
       - env:
         - name: POSTGRES_DB

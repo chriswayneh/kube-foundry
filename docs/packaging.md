@@ -37,6 +37,8 @@ Use the same `.env` credentials as the running stack. Do not generate new passwo
 
 Application resources are managed with `kubectl apply`; Helm manages only the platform controller releases in this workflow. Do not run `helm install shop` over the existing application namespace. The chart supports direct Helm installation into a separately provisioned namespace as documented in its README.
 
+From phase 6 onward, `make deploy-phase6 REUSE_SECRET=true` reuses an existing runtime Secret without reading credentials back to disk. Use the normal `.env` path for a new cluster. Restricted namespace labels, service accounts, and observer RBAC are part of the shared application package; Kyverno installation and policies are handled by the phase-6 target.
+
 ## Clean-cluster verification
 
 Use a separate kubeconfig and the verification topology to avoid altering the development cluster. It has the same three nodes and Cilium setup but no conflicting Docker host port mappings.

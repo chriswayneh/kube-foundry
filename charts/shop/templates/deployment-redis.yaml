@@ -22,6 +22,8 @@ spec:
         app.kubernetes.io/name: shop
         app.kubernetes.io/part-of: kube-foundry
     spec:
+      serviceAccountName: redis
+      automountServiceAccountToken: false
       containers:
       - args:
         - exec redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"

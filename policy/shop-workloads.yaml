@@ -1,0 +1,97 @@
+apiVersion: policies.kyverno.io/v1
+kind: NamespacedValidatingPolicy
+metadata:
+  name: shop-workloads
+  namespace: shop
+spec:
+  failurePolicy: Fail
+  validationActions: [Deny, Audit]
+  evaluation:
+    admission:
+      enabled: true
+    background:
+      enabled: true
+  autogen:
+    podControllers:
+      controllers: [deployments, statefulsets, daemonsets, jobs, cronjobs]
+    validatingAdmissionPolicy:
+      enabled: false
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  variables:
+    - name: regularContainers
+      expression: object.spec.containers + object.spec.?initContainers.orValue([])
+    - name: allContainers
+      expression: variables.regularContainers + object.spec.?ephemeralContainers.orValue([])
+  validations:
+    - expression: >-
+        variables.allContainers.all(c,
+          c.image.matches('^([^@]+:[^/@:]+|[^@]+@sha256:[a-fA-F0-9]{64})$') &&
+          !c.image.endsWith(':latest'))
+      message: "require-versioned-images: use an explicit non-latest tag or SHA256 digest."
+    - expression: >-
+        variables.allContainers.all(c, c.?securityContext.runAsNonRoot.orValue(false))
+      message: "require-non-root: each container must explicitly set runAsNonRoot to true."
+    - expression: >-
+        variables.regularContainers.all(c,
+          has(c.resources) && has(c.resources.requests) && has(c.resources.limits) &&
+          ['cpu', 'memory'].all(r, r in c.resources.requests && r in c.resources.limits))
+      message: "require-resources: regular and init containers need CPU and memory requests and limits."
+    - expression: >-
+        has(object.spec.serviceAccountName) && object.spec.serviceAccountName != '' &&
+        object.spec.serviceAccountName != 'default' &&
+        has(object.spec.automountServiceAccountToken) && !object.spec.automountServiceAccountToken
+      message: "require-workload-identity: name a service account and disable API token automount."
+---
+apiVersion: policies.kyverno.io/v1
+kind: NamespacedValidatingPolicy
+metadata:
+  name: shop-ephemeral-containers
+  namespace: shop
+spec:
+  failurePolicy: Fail
+  validationActions: [Deny, Audit]
+  evaluation:
+    admission:
+      enabled: true
+    background:
+      enabled: false
+  autogen:
+    podControllers:
+      controllers: []
+    validatingAdmissionPolicy:
+      enabled: false
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods/ephemeralcontainers]
+  variables:
+    - name: regularContainers
+      expression: object.spec.containers + object.spec.?initContainers.orValue([])
+    - name: allContainers
+      expression: variables.regularContainers + object.spec.?ephemeralContainers.orValue([])
+  validations:
+    - expression: >-
+        variables.allContainers.all(c,
+          c.image.matches('^([^@]+:[^/@:]+|[^@]+@sha256:[a-fA-F0-9]{64})$') &&
+          !c.image.endsWith(':latest'))
+      message: "require-versioned-images: use an explicit non-latest tag or SHA256 digest."
+    - expression: >-
+        variables.allContainers.all(c, c.?securityContext.runAsNonRoot.orValue(false))
+      message: "require-non-root: each container must explicitly set runAsNonRoot to true."
+    - expression: >-
+        variables.regularContainers.all(c,
+          has(c.resources) && has(c.resources.requests) && has(c.resources.limits) &&
+          ['cpu', 'memory'].all(r, r in c.resources.requests && r in c.resources.limits))
+      message: "require-resources: regular and init containers need CPU and memory requests and limits."
+    - expression: >-
+        has(object.spec.serviceAccountName) && object.spec.serviceAccountName != '' &&
+        object.spec.serviceAccountName != 'default' &&
+        has(object.spec.automountServiceAccountToken) && !object.spec.automountServiceAccountToken
+      message: "require-workload-identity: name a service account and disable API token automount."

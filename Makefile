@@ -4,10 +4,12 @@ CLUSTER_NAME ?= kube-foundry
 CLUSTER_CONFIG ?= clusters/kind/cluster.yaml
 ENVIRONMENT ?= dev
 ENV_FILE ?= .env
+REUSE_SECRET ?= false
 IMAGE_TAG ?= 0.1.0
 CILIUM_VERSION ?= 1.20.2
 ENVOY_GATEWAY_VERSION ?= v1.9.1
 CERT_MANAGER_VERSION ?= v1.21.2
+KYVERNO_VERSION ?= 3.9.1
 API_IMAGE := kube-foundry-api:$(IMAGE_TAG)
 WORKER_IMAGE := kube-foundry-worker:$(IMAGE_TAG)
 WEB_IMAGE := kube-foundry-web:$(IMAGE_TAG)
@@ -33,9 +35,13 @@ load:
 	kind load docker-image --name $(CLUSTER_NAME) $(API_IMAGE) $(WORKER_IMAGE) $(WEB_IMAGE)
 
 secret:
-	@test -f "$(ENV_FILE)" || (echo "Missing $(ENV_FILE). Copy .env.example and set local-only values." && exit 1)
-	kubectl apply -f clusters/kind/manifests/phase1/namespace.yaml
-	kubectl -n shop create secret generic shop-runtime --from-env-file="$(ENV_FILE)" --dry-run=client -o yaml | kubectl apply -f -
+	kubectl apply -f gitops/apps/shop/base/namespace.yaml
+	@if [ "$(REUSE_SECRET)" = true ]; then \
+		kubectl -n shop get secret shop-runtime >/dev/null; \
+	else \
+		test -f "$(ENV_FILE)" || { echo "Missing $(ENV_FILE). Copy .env.example and set local-only values." >&2; exit 1; }; \
+		kubectl -n shop create secret generic shop-runtime --from-env-file="$(ENV_FILE)" --dry-run=client -o yaml | kubectl apply -f -; \
+	fi
 
 deploy-phase1:
 	kubectl apply -k clusters/kind/manifests/phase1
@@ -93,6 +99,21 @@ deploy-phase5: check-environment check-chart
 
 smoke-traffic:
 	@sh scripts/smoke-traffic.sh
+
+.PHONY: security-platform deploy-phase6 security-check
+
+security-platform:
+	helm upgrade --install kyverno kyverno --repo https://kyverno.github.io/kyverno/ --version $(KYVERNO_VERSION) --namespace kyverno --create-namespace -f gitops/platform/kyverno-values.yaml --wait --timeout 300s
+
+deploy-phase6: deploy-phase5
+	$(MAKE) security-platform
+	kubectl apply -f policy/shop-workloads.yaml
+	kubectl -n shop wait --for=jsonpath='{.status.conditionStatus.ready}'=true namespacedvalidatingpolicy/shop-workloads --timeout=120s
+	kubectl -n shop wait --for=jsonpath='{.status.conditionStatus.ready}'=true namespacedvalidatingpolicy/shop-ephemeral-containers --timeout=120s
+	$(MAKE) security-check
+
+security-check:
+	python scripts/check-security.py
 
 smoke:
 	@sh scripts/smoke.sh

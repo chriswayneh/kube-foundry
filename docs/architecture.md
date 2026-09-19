@@ -1,6 +1,6 @@
 # Architecture
 
-## Current system (phase 5)
+## Current system (phase 6)
 
 The `shop` namespace contains five deployed workloads: web, API, worker, PostgreSQL, and Redis. The API is stateless. PostgreSQL is a single-replica StatefulSet with a stable network identity and PVC. Redis is a single-replica Deployment with a PVC. The worker blocks on the Redis `jobs` list and records job state in PostgreSQL.
 
@@ -29,6 +29,8 @@ sequenceDiagram
 ```
 
 ## Kubernetes object relationships
+
+Every application workload has a dedicated ServiceAccount with token automount disabled and no Kubernetes API grants. A separate observer RoleBinding permits status and log reads only within `shop`. The namespace enforces restricted Pod Security v1.37. Kyverno's namespaced CEL policies reject noncompliant Pods and controller templates before admission; a separate policy covers ephemeral-container updates. The Kyverno controller runs in its own namespace. See [security controls](security.md).
 
 A Pod is the smallest scheduled unit and contains one or more containers. Pods are disposable and receive new names and IP addresses when replaced. A ReplicaSet keeps a requested number of matching Pods running. A Deployment owns ReplicaSets and adds declarative rollout and rollback behavior. In this project, the `api` Deployment owns its ReplicaSet; operators change the Deployment and never manage its Pods directly.
 

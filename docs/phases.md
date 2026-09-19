@@ -45,8 +45,9 @@ Every phase must end with healthy workloads, updated documentation, and reproduc
 
 ## Phase 6: security
 
-- [ ] Add ServiceAccounts, namespace RBAC, restricted PSA, and Kyverno policies
-- [ ] Add dummy SOPS or Sealed Secrets example
+- [x] Add ServiceAccounts, namespace RBAC, restricted PSA, and Kyverno policies
+- [x] Add dummy SOPS or Sealed Secrets example
+- [x] Verify allowed/denied admissions, RBAC scope, token isolation, and dummy encryption round-trip (2026-09-19)
 
 ## Phase 7: observability and scale
 

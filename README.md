@@ -17,6 +17,7 @@ It's still under construction. I keep adding one layer at a time and try to leav
 - Envoy Gateway routing for the web frontend and API
 - Local HTTPS certificates issued and renewed by cert-manager
 - A shared Helm chart with dev, staging, and prod Kustomize overlays
+- Dedicated service accounts, scoped observer RBAC, restricted Pod Security, and Kyverno admission policies
 - Multi-stage, non-root containers with pinned versions
 - A few smoke and failure tests so I can tell when I break something
 
@@ -53,7 +54,8 @@ cp .env.example .env
 make cluster
 make build
 make load
-make deploy-phase5
+make deploy-phase6
+make security-check
 make smoke
 make smoke-traffic
 make status
@@ -89,7 +91,6 @@ The exact commands and failure notes are in [docs/failures.md](docs/failures.md)
 
 ## Roadmap
 
-- Service accounts, RBAC, restricted Pod Security, and Kyverno
 - Prometheus, Grafana, autoscaling, and disruption budgets
 - Argo CD and a small GitHub Actions pipeline
 
