@@ -10,6 +10,9 @@ CILIUM_VERSION ?= 1.20.2
 ENVOY_GATEWAY_VERSION ?= v1.9.1
 CERT_MANAGER_VERSION ?= v1.21.2
 KYVERNO_VERSION ?= 3.9.1
+MONITORING_VERSION ?= 91.4.1
+METRICS_SERVER_VERSION ?= 3.14.0
+APPLICATION_OVERLAY ?= gitops/apps/shop/overlays/$(ENVIRONMENT)
 API_IMAGE := kube-foundry-api:$(IMAGE_TAG)
 WORKER_IMAGE := kube-foundry-worker:$(IMAGE_TAG)
 WEB_IMAGE := kube-foundry-web:$(IMAGE_TAG)
@@ -88,7 +91,7 @@ check-environment:
 deploy-phase5: check-environment check-chart
 	$(MAKE) secret traffic-platform
 	kubectl apply -f gitops/platform/gatewayclass.yaml
-	kubectl apply -k gitops/apps/shop/overlays/$(ENVIRONMENT)
+	kubectl apply -k $(APPLICATION_OVERLAY)
 	kubectl -n shop rollout status statefulset/postgres --timeout=180s
 	kubectl -n shop rollout status deployment/redis --timeout=180s
 	kubectl -n shop rollout status deployment/api --timeout=180s
@@ -115,6 +118,30 @@ deploy-phase6: deploy-phase5
 security-check:
 	python scripts/check-security.py
 
+.PHONY: monitoring-platform deploy-phase7 monitoring-check scaling-check grafana-access prometheus-access
+
+monitoring-platform:
+	helm upgrade --install metrics-server metrics-server --repo https://kubernetes-sigs.github.io/metrics-server/ --version $(METRICS_SERVER_VERSION) --namespace kube-system -f gitops/platform/monitoring/metrics-server-values.yaml --wait --timeout 300s
+	helm upgrade --install monitoring kube-prometheus-stack --repo https://prometheus-community.github.io/helm-charts --version $(MONITORING_VERSION) --namespace monitoring --create-namespace -f gitops/platform/monitoring/values.yaml --wait --timeout 300s
+	kubectl apply -k gitops/platform/monitoring
+	kubectl wait --for=condition=Available apiservice/v1beta1.metrics.k8s.io --timeout=120s
+
+deploy-phase7: check-environment monitoring-platform
+	$(MAKE) deploy-phase6 APPLICATION_OVERLAY=gitops/apps/shop/phase7/$(ENVIRONMENT)
+	$(MAKE) monitoring-check
+
+monitoring-check:
+	python scripts/check-observability.py
+
+scaling-check:
+	python scripts/check-scaling.py
+
+grafana-access:
+	kubectl -n monitoring port-forward --address 127.0.0.1 service/monitoring-grafana 3000:80
+
+prometheus-access:
+	kubectl -n monitoring port-forward --address 127.0.0.1 service/monitoring-prometheus 9090:9090
+
 smoke:
 	@sh scripts/smoke.sh
 
@@ -122,8 +149,10 @@ status:
 	kubectl get pods,svc,pvc,networkpolicy -n shop -o wide
 
 validate: check-chart
+	@for environment in dev staging prod; do kubectl kustomize gitops/apps/shop/phase7/$$environment >/dev/null || exit 1; done
+	kubectl kustomize gitops/platform/monitoring >/dev/null
 	kubectl kustomize clusters/kind/manifests/phase1 >/dev/null
 	kubectl kustomize clusters/kind/manifests/phase2 >/dev/null
 	kubectl kustomize clusters/kind/manifests/phase3 >/dev/null
 	kubectl kustomize clusters/kind/manifests/phase4 >/dev/null
-	python -m compileall -q app/api app/worker
+	python -m compileall -q app/api app/worker scripts

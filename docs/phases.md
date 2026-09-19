@@ -51,7 +51,8 @@ Every phase must end with healthy workloads, updated documentation, and reproduc
 
 ## Phase 7: observability and scale
 
-- [ ] Add slim kube-prometheus-stack, ServiceMonitor, dashboard, HPA, and PDBs
+- [x] Add slim kube-prometheus-stack, ServiceMonitor, dashboard, HPA, and PDBs
+- [x] Verify scraping, dashboard provisioning, CPU scale-up/recovery, and eviction dry-runs (2026-09-19)
 
 ## Phase 8: GitOps and CI
 

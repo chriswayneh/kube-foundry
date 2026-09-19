@@ -18,6 +18,7 @@ It's still under construction. I keep adding one layer at a time and try to leav
 - Local HTTPS certificates issued and renewed by cert-manager
 - A shared Helm chart with dev, staging, and prod Kustomize overlays
 - Dedicated service accounts, scoped observer RBAC, restricted Pod Security, and Kyverno admission policies
+- Prometheus metrics, a provisioned Grafana dashboard, CPU autoscaling, and disruption budgets
 - Multi-stage, non-root containers with pinned versions
 - A few smoke and failure tests so I can tell when I break something
 
@@ -54,7 +55,7 @@ cp .env.example .env
 make cluster
 make build
 make load
-make deploy-phase6
+make deploy-phase7
 make security-check
 make smoke
 make smoke-traffic
@@ -86,17 +87,20 @@ make cluster-delete
 - TLS verification succeeds with the generated public certificate
 - Item creation and background jobs work through HTTPS
 - Unknown hosts and unknown API paths return 404
+- Prometheus scrapes the API and Grafana loads its provisioned dashboard
+- CPU load scales the API up, then it returns to its minimum replica count
+- Eviction dry-runs allow a redundant API Pod and protect the singleton database
 
 The exact commands and failure notes are in [docs/failures.md](docs/failures.md). Architecture notes and tradeoffs are in [docs/architecture.md](docs/architecture.md) and [docs/decisions.md](docs/decisions.md).
 
 ## Roadmap
 
-- Prometheus, Grafana, autoscaling, and disruption budgets
 - Argo CD and a small GitHub Actions pipeline
 
 The rough build checklist is in [docs/phases.md](docs/phases.md). It will probably move around as the project does.
 
 Chart usage, environment differences, and clean-cluster setup are in [docs/packaging.md](docs/packaging.md).
+Monitoring access, autoscaling, and maintenance limits are in [docs/observability.md](docs/observability.md).
 
 ## License
 

@@ -1,0 +1,11 @@
+# kind's kubelet serving certificates are not trusted by Metrics Server.
+# This exception is only for the local kind cluster, not production.
+args:
+  - --kubelet-insecure-tls
+apiService:
+  insecureSkipTLSVerify: false
+tls:
+  type: helm
+resources:
+  requests: {cpu: 50m, memory: 64Mi}
+  limits: {cpu: 200m, memory: 192Mi}

@@ -1,6 +1,6 @@
 # Architecture
 
-## Current system (phase 6)
+## Current system (phase 7)
 
 The `shop` namespace contains five deployed workloads: web, API, worker, PostgreSQL, and Redis. The API is stateless. PostgreSQL is a single-replica StatefulSet with a stable network identity and PVC. Redis is a single-replica Deployment with a PVC. The worker blocks on the Redis `jobs` list and records job state in PostgreSQL.
 
@@ -37,6 +37,8 @@ A Pod is the smallest scheduled unit and contains one or more containers. Pods a
 Services provide stable discovery over changing Pods. The `postgres` headless Service also gives the StatefulSet a stable network identity. PersistentVolumeClaims decouple PostgreSQL and Redis data from Pod lifetimes.
 
 ## Health semantics
+
+Prometheus discovers API metrics through a ServiceMonitor and an explicit network-policy allowance. Grafana provisions a dashboard from Git. Metrics Server supplies CPU utilization to the API HPA; phase 7 overlays omit API replicas so deployment reconciliation does not compete with autoscaling. Five PodDisruptionBudgets govern voluntary evictions. See [observability and scaling](observability.md) for access and availability limits.
 
 - `/healthz` proves the API process can serve HTTP; Kubernetes uses it for startup and liveness.
 - `/readyz` checks required configuration and, from phase 3 onward, executes PostgreSQL and Redis pings. Any failed dependency returns HTTP 503, removing the Pod from Service endpoints.

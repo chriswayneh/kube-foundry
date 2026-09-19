@@ -1,0 +1,72 @@
+fullnameOverride: monitoring
+defaultRules:
+  create: false
+alertmanager:
+  enabled: false
+nodeExporter:
+  enabled: false
+kubeApiServer:
+  enabled: false
+kubelet:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+coreDns:
+  enabled: false
+kubeDns:
+  enabled: false
+prometheusOperator:
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 300m, memory: 256Mi}
+prometheus:
+  prometheusSpec:
+    retention: 24h
+    retentionSize: 800MB
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+    podMetadata:
+      labels:
+        kube-foundry.dev/monitoring: prometheus
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector:
+      matchLabels:
+        release: monitoring
+    serviceMonitorNamespaceSelector: {}
+    resources:
+      requests: {cpu: 100m, memory: 256Mi}
+      limits: {cpu: 500m, memory: 768Mi}
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 1Gi
+grafana:
+  defaultDashboardsEnabled: false
+  persistence:
+    enabled: false
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 300m, memory: 384Mi}
+  grafana.ini:
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: monitoring
+    datasources:
+      uid: prometheus
+kube-state-metrics:
+  resources:
+    requests: {cpu: 25m, memory: 64Mi}
+    limits: {cpu: 200m, memory: 192Mi}
