@@ -20,7 +20,7 @@ make gateway-access
 
 Before installation, confirm the context is `kind-kube-foundry` or the explicitly selected disposable cluster. `make install` targets the active kubeconfig; never point it at an unrelated/shared cluster. `init-env` generates random local credentials, creates a private file on systems supporting POSIX permissions, and refuses to overwrite an existing file. Protect the file with your workstation's access controls on Windows.
 
-Installation bootstraps the pinned controllers, applies the root Application, and runs `make verify`. The root adds Kustomize patches that pin both child Applications to the chosen revision. Argo fetches published images by digest; local Docker builds are not required. The release tag freezes repository configuration and image references, not upstream registries or vulnerability advisory databases. Future scans can discover new findings in a previously released image.
+Installation bootstraps the pinned controllers, applies the root Application, waits for all desired and observed source revisions to match, and runs `make verify`. The root adds Kustomize patches that pin both child Applications to the chosen revision. An older healthy application cannot satisfy the revision check. Argo fetches published images by digest; local Docker builds are not required. The release tag freezes repository configuration and image references, not upstream registries or vulnerability advisory databases. Future scans can discover new findings in a previously released image.
 
 For an existing instance, retain its credentials. If the original `.env` is unavailable, use `REUSE_SECRET=true`; do not generate replacement passwords against existing database volumes.
 
@@ -74,6 +74,7 @@ Release acceptance was exercised on 2026-09-19 using a new `kube-foundry-release
 | Check | Outcome |
 | --- | --- |
 | Fresh three-node cluster and published-image install | Passed without local image loading |
+| Fresh GitHub clone and repeatable installation | Render validation, reinstall, and all verification targets passed |
 | Root and all child source revisions | Pinned to the requested commit; Synced/Healthy |
 | Security, RBAC, API token isolation, and admission | Passed |
 | Prometheus, Grafana, HPA metrics, and eviction dry-runs | Passed |

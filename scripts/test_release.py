@@ -15,6 +15,23 @@ def module(name):
 
 
 class ReleaseSafety(unittest.TestCase):
+    def test_healthy_old_revision_does_not_complete_upgrade(self):
+        check = module("check-gitops").at_revision
+        app = {"spec": {"source": {"targetRevision": "v1.0.0"}},
+               "status": {"sync": {"comparedTo": {"source": {"targetRevision": "main"}}}}}
+        self.assertFalse(check(app, "v1.0.0"))
+        app["status"]["sync"]["comparedTo"]["source"]["targetRevision"] = "v1.0.0"
+        self.assertTrue(check(app, "v1.0.0"))
+        self.assertFalse(check({}, "v1.0.0"))
+
+    def test_every_platform_source_must_match(self):
+        check = module("check-gitops").at_revision
+        sources = [{"targetRevision": "v1.0.0"}, {"targetRevision": "main"}]
+        app = {"spec": {"sources": sources}, "status": {"sync": {"comparedTo": {"sources": sources}}}}
+        self.assertFalse(check(app, "v1.0.0"))
+        sources[1]["targetRevision"] = "v1.0.0"
+        self.assertTrue(check(app, "v1.0.0"))
+
     def test_root_and_all_children_share_release_revision(self):
         root = module("bootstrap-gitops").pinned_root({"spec": {"source": {}}}, "v1.0.0")
         self.assertEqual(root["spec"]["source"]["targetRevision"], "v1.0.0")

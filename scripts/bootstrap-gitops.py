@@ -3,6 +3,7 @@
 import argparse
 import json
 import subprocess
+import sys
 
 
 def pinned_root(root, revision):
@@ -25,6 +26,7 @@ def main():
         ["kubectl", "create", "--dry-run=client", "-f", "gitops/root-app.yaml", "-o", "json"], text=True))
     subprocess.run(["kubectl", "apply", "-f", "-"], input=json.dumps(pinned_root(root, args.revision)),
                    text=True, check=True)
+    subprocess.run([sys.executable, "scripts/check-gitops.py", "--revision", args.revision], check=True)
 
 
 if __name__ == "__main__":
