@@ -1,8 +1,12 @@
 # Architecture
 
-## Current system (phase 3)
+## Current system (phase 4)
 
-The `shop` namespace contains four deployed workloads. The API is stateless. PostgreSQL is a single-replica StatefulSet with a stable network identity and PVC. Redis is a single-replica Deployment with a PVC. The worker blocks on the Redis `jobs` list and records job state in PostgreSQL.
+The `shop` namespace contains five deployed workloads: web, API, worker, PostgreSQL, and Redis. The API is stateless. PostgreSQL is a single-replica StatefulSet with a stable network identity and PVC. Redis is a single-replica Deployment with a PVC. The worker blocks on the Redis `jobs` list and records job state in PostgreSQL.
+
+Envoy Gateway manages a proxy in `envoy-gateway-system`. A Gateway and HTTPRoute in `shop` expose the frontend and API under `shop.localhost`, with `/api` taking precedence over `/`. Paths are preserved because FastAPI already serves `/api`. Both HTTP and HTTPS listeners use the same routes. cert-manager maintains the TLS Secret from a namespaced self-signed Issuer and Certificate.
+
+The proxy Service is ClusterIP. A loopback port-forward exposes HTTP on 8080 and HTTPS on 8443 without a host-network Pod or external load balancer. NetworkPolicy allows only this Gateway's proxy Pods in `envoy-gateway-system` to reach the API and web ports. The frontend makes API requests from the browser, so its Pod needs no API or database egress. See [traffic configuration](traffic.md).
 
 ```mermaid
 sequenceDiagram
@@ -39,4 +43,3 @@ Services provide stable discovery over changing Pods. The `postgres` headless Se
 ## Image flow
 
 Local images carry the immutable development tag `0.1.0`. `imagePullPolicy: IfNotPresent` allows kind-loaded images and never resolves `:latest`. A future release pipeline will replace the tag in GitOps overlays with a commit-derived tag or digest.
-

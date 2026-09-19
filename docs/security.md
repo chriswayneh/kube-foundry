@@ -2,9 +2,9 @@
 
 ## Trust boundaries and assets
 
-The public Git repository and built images are untrusted inputs until reviewed. The local workstation, Docker daemon, and kind control plane are trusted for development. Data and credentials inside `shop` are protected assets; the API is the only client-facing workload.
+The public Git repository and built images are untrusted inputs until reviewed. The local workstation, Docker daemon, and kind control plane are trusted for development. Data and credentials inside `shop` are protected assets; Envoy exposes the web frontend and API to local clients.
 
-## Implemented controls (phases 1-3)
+## Implemented controls (phases 1-4)
 
 - Real credentials and kubeconfigs are excluded from Git. `make secret` creates `shop-runtime` from ignored `.env` at runtime.
 - Every image uses an explicit version; the kind node image is pinned by tag and digest.
@@ -12,6 +12,9 @@ The public Git repository and built images are untrusted inputs until reviewed. 
 - CPU/memory requests and limits bound accidental resource consumption.
 - Namespace-wide ingress and egress are denied. DNS is explicitly allowed. PostgreSQL and Redis accept network traffic only from the API and worker; those are the only workloads permitted to initiate connections to the data stores.
 - Readiness fails closed when PostgreSQL or Redis is unavailable.
+- Envoy proxy Pods are allowed to reach only the API and web workload ports in `shop`. Data-store access remains limited to the API and worker.
+- The web container runs as UID/GID 101 with a read-only root filesystem, dropped capabilities, and writable `/tmp`.
+- Host access uses a loopback-only port-forward. TLS uses a development self-signed certificate; no private keys are committed or installed into the host trust store.
 
 Live verification on 2026-09-17 confirmed the API and worker could reach both stores while an unlabeled Pod in `shop` timed out connecting to PostgreSQL port 5432 under the same policies.
 

@@ -6,7 +6,11 @@
 
 ## ADR-002: Gateway API instead of Ingress
 
-**Status:** accepted for phase 4. **Decision:** use Gateway API with Envoy Gateway; use ingress-nginx only if a recorded blocker prevents it. **Why:** Gateway separates infrastructure and route ownership and avoids building on the frozen Ingress API. **Consequence:** the cluster needs Gateway API CRDs and a controller before routes reconcile.
+**Status:** implemented in phase 4. **Decision:** use Gateway API with Envoy Gateway. **Why:** Gateway separates infrastructure and route ownership. **Consequence:** the cluster needs Gateway API CRDs and a controller before routes reconcile. The pinned controller chart bundles the compatible CRDs.
+
+## ADR-007: loopback access and local TLS
+
+**Status:** implemented in phase 4. **Decision:** expose the Envoy ClusterIP Service through a loopback port-forward on 8080/8443 and issue a local certificate with cert-manager. **Why:** this works with the existing Docker Desktop cluster without rebuilding nodes or installing a load balancer. **Consequence:** access requires a running port-forward, and browsers do not trust the self-signed certificate automatically. The original kind 80/443 mappings remain unused. Production requires a trusted issuer, an external entry point, and authentication.
 
 ## ADR-003: Helm plus Kustomize
 

@@ -1,6 +1,6 @@
 # kind cluster
 
-`cluster.yaml` creates one control-plane and two workers using kind 0.33.0 and a digest-pinned Kubernetes 1.37.0 node image. Helm 3.22.0 installs the CNI. Ports 80 and 443 are reserved on the control-plane for the phase-4 Gateway.
+`cluster.yaml` creates one control-plane and two workers using kind 0.33.0 and a digest-pinned Kubernetes 1.37.0 node image. Helm 3.22.0 installs the CNI. The original 80/443 Docker port mappings remain reserved but unused. Phase 4 uses a loopback port-forward on 8080/8443 to the Envoy ClusterIP Service, so existing clusters do not need to be recreated. See [host access](../../docs/traffic.md).
 
 The default kind CNI is disabled because kindnet does not enforce NetworkPolicy. `make cluster` installs the pinned Cilium 1.20.2 OCI Helm chart before waiting for nodes. If creating manually, install the same chart and then wait:
 

@@ -14,12 +14,16 @@ It's still under construction. I keep adding one layer at a time and try to leav
 - PostgreSQL and Redis with persistent volumes
 - Startup, liveness, and dependency-aware readiness probes
 - Default-deny network policies with explicit API/worker data paths
+- Envoy Gateway routing for the web frontend and API
+- Local HTTPS certificates issued and renewed by cert-manager
 - Multi-stage, non-root containers with pinned versions
 - A few smoke and failure tests so I can tell when I break something
 
 ```mermaid
 flowchart LR
-    Client --> API[FastAPI API]
+    Client --> Gateway[Envoy Gateway HTTP/HTTPS]
+    Gateway --> Web[Web frontend]
+    Gateway --> API[FastAPI API]
     API --> PG[(PostgreSQL)]
     API --> Redis[(Redis queue)]
     Redis --> Worker[Python worker]
@@ -35,11 +39,11 @@ flowchart LR
     end
 ```
 
-The frontend exists but isn't wired into cluster traffic yet. That's part of the next batch of changes.
+The frontend and API share `shop.localhost`. Envoy routes `/api` to FastAPI and `/` to the frontend.
 
 ## Run it
 
-You'll need Docker, kind 0.33.0, kubectl, Helm 3.22.0, GNU Make, and `curl`. On Windows, run the Make targets from WSL or Git Bash.
+You'll need Docker, kind 0.33.0, kubectl, Helm 3.22.0, GNU Make, Python 3, and `curl`. On Windows, run the Make targets from WSL or Git Bash.
 
 ```bash
 cp .env.example .env
@@ -48,10 +52,16 @@ cp .env.example .env
 make cluster
 make build
 make load
-make deploy-phase3
+make deploy-phase4
 make smoke
+make smoke-traffic
 make status
+make gateway-access
 ```
+
+With `make gateway-access` running, open `http://shop.localhost:8080` or `https://shop.localhost:8443`.
+The HTTPS certificate is self-signed for local development, so browsers will show a trust warning.
+See [host access and TLS verification](docs/traffic.md) for certificate verification and Windows commands.
 
 Clean it up with:
 
@@ -69,13 +79,15 @@ make cluster-delete
 - The API goes unready when its dependencies fail
 - An unlabeled Pod can't connect to PostgreSQL through the default-deny policies
 - The Kubernetes manifests pass strict 1.37 schema validation
+- HTTP and HTTPS serve the frontend and API through Envoy
+- TLS verification succeeds with the generated public certificate
+- Item creation and background jobs work through HTTPS
+- Unknown hosts and unknown API paths return 404
 
 The exact commands and failure notes are in [docs/failures.md](docs/failures.md). Architecture notes and tradeoffs are in [docs/architecture.md](docs/architecture.md) and [docs/decisions.md](docs/decisions.md).
 
 ## Roadmap
 
-- Gateway API and Envoy Gateway
-- Local TLS with cert-manager
 - Turning the app manifests into a Helm chart
 - Dev, staging, and prod-flavored overlays
 - Service accounts, RBAC, restricted Pod Security, and Kyverno

@@ -30,10 +30,11 @@ Every phase must end with healthy workloads, updated documentation, and reproduc
 
 ## Phase 4: traffic
 
-- [ ] Install pinned Gateway API CRDs and Envoy Gateway
-- [ ] Route `/` to web and `/api` to API
-- [ ] Add cert-manager and self-signed issuer
-- [ ] Document host access
+- [x] Install pinned Gateway API CRDs and Envoy Gateway
+- [x] Route `/` to web and `/api` to API
+- [x] Add cert-manager and self-signed issuer
+- [x] Document host access
+- [x] Verify HTTP/HTTPS, certificate trust, item creation, job completion, and unmatched routes (2026-09-19)
 
 ## Phase 5: packaging and environments
 
