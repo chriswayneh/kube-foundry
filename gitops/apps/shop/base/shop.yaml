@@ -1,0 +1,862 @@
+---
+# Source: shop/templates/networkpolicy-allow-api-data-egress.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: allow-api-data-egress
+  namespace: shop
+spec:
+  egress:
+  - ports:
+    - port: 5432
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: postgres
+  - ports:
+    - port: 6379
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: redis
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: api
+  policyTypes:
+  - Egress
+---
+# Source: shop/templates/networkpolicy-allow-dns.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: allow-dns
+  namespace: shop
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+  podSelector: {}
+  policyTypes:
+  - Egress
+---
+# Source: shop/templates/networkpolicy-allow-postgres-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: allow-postgres-ingress
+  namespace: shop
+spec:
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app.kubernetes.io/component
+          operator: In
+          values:
+          - api
+          - worker
+    ports:
+    - port: 5432
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: postgres
+  policyTypes:
+  - Ingress
+---
+# Source: shop/templates/networkpolicy-allow-redis-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: allow-redis-ingress
+  namespace: shop
+spec:
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app.kubernetes.io/component
+          operator: In
+          values:
+          - api
+          - worker
+    ports:
+    - port: 6379
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: redis
+  policyTypes:
+  - Ingress
+---
+# Source: shop/templates/networkpolicy-allow-shop-gateway.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-shop-gateway
+  namespace: shop
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: envoy-gateway-system
+      podSelector:
+        matchLabels:
+          gateway.envoyproxy.io/owning-gateway-name: shop
+          gateway.envoyproxy.io/owning-gateway-namespace: shop
+    ports:
+    - port: 8000
+      protocol: TCP
+    - port: 8080
+      protocol: TCP
+  podSelector:
+    matchExpressions:
+    - key: app.kubernetes.io/component
+      operator: In
+      values:
+      - api
+      - web
+  policyTypes:
+  - Ingress
+---
+# Source: shop/templates/networkpolicy-allow-worker-data-egress.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: allow-worker-data-egress
+  namespace: shop
+spec:
+  egress:
+  - ports:
+    - port: 5432
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: postgres
+  - ports:
+    - port: 6379
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: redis
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: worker
+  policyTypes:
+  - Egress
+---
+# Source: shop/templates/networkpolicy-default-deny.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: default-deny
+  namespace: shop
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# Source: shop/templates/configmap-shop-config.yaml
+apiVersion: v1
+data:
+  APP_CONFIGURED: "true"
+  DEPENDENCY_CHECKS_ENABLED: "true"
+  LOG_LEVEL: INFO
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: api
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: shop-config
+  namespace: shop
+---
+# Source: shop/templates/persistentvolumeclaim-redis-data.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: redis-data
+  namespace: shop
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: "512Mi"
+---
+# Source: shop/templates/service-api.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: api
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: api
+  namespace: shop
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+  selector:
+    app.kubernetes.io/component: api
+    app.kubernetes.io/name: shop
+---
+# Source: shop/templates/service-postgres.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: postgres
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: postgres
+  namespace: shop
+spec:
+  clusterIP: None
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: postgres
+  selector:
+    app.kubernetes.io/component: postgres
+    app.kubernetes.io/name: shop
+---
+# Source: shop/templates/service-redis.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: redis
+  namespace: shop
+spec:
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: redis
+  selector:
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/name: shop
+---
+# Source: shop/templates/service-web.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: shop
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+  selector:
+    app.kubernetes.io/component: web
+---
+# Source: shop/templates/deployment-api.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: api
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: api
+  namespace: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: api
+      app.kubernetes.io/name: shop
+  template:
+    metadata:
+      annotations:
+        checksum/config: f8a7a4590856affbeea16f8aed1016ca016e00c05d158787edc3ebbf5a9db559
+      labels:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/name: shop
+        app.kubernetes.io/part-of: kube-foundry
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_DB
+              name: shop-runtime
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_USER
+              name: shop-runtime
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: shop-runtime
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_PASSWORD
+              name: shop-runtime
+        - name: DATABASE_URL
+          value: postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)
+        - name: REDIS_URL
+          value: redis://:$(REDIS_PASSWORD)@redis:6379/0
+        envFrom:
+        - configMapRef:
+            name: shop-config
+        image: "kube-foundry-api:0.1.0"
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 2
+        name: api
+        ports:
+        - containerPort: 8000
+          name: http
+        readinessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /readyz
+            port: http
+          periodSeconds: 5
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 10001
+          runAsNonRoot: true
+          runAsUser: 10001
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 2
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - emptyDir: {}
+        name: tmp
+---
+# Source: shop/templates/deployment-redis.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: redis
+  namespace: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: redis
+      app.kubernetes.io/name: shop
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: redis
+        app.kubernetes.io/name: shop
+        app.kubernetes.io/part-of: kube-foundry
+    spec:
+      containers:
+      - args:
+        - exec redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"
+        command:
+        - sh
+        - -ec
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_PASSWORD
+              name: shop-runtime
+        image: "redis:7.4.11-alpine3.21"
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -ec
+            - REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping | grep -q PONG
+          failureThreshold: 6
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 3
+        name: redis
+        ports:
+        - containerPort: 6379
+          name: redis
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -ec
+            - REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping | grep -q PONG
+          failureThreshold: 6
+          periodSeconds: 5
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsGroup: 1000
+          runAsNonRoot: true
+          runAsUser: 999
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /data
+          name: data
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 999
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: redis-data
+---
+# Source: shop/templates/deployment-web.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/name: shop
+        app.kubernetes.io/part-of: kube-foundry
+    spec:
+      containers:
+      - image: "kube-foundry-web:0.1.0"
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          periodSeconds: 10
+        name: web
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 25m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 101
+          runAsNonRoot: true
+          runAsUser: 101
+          seccompProfile:
+            type: RuntimeDefault
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /
+            port: http
+          periodSeconds: 2
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - emptyDir: {}
+        name: tmp
+---
+# Source: shop/templates/deployment-worker.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: worker
+  namespace: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: worker
+      app.kubernetes.io/name: shop
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/name: shop
+        app.kubernetes.io/part-of: kube-foundry
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_DB
+              name: shop-runtime
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_USER
+              name: shop-runtime
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: shop-runtime
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_PASSWORD
+              name: shop-runtime
+        - name: DATABASE_URL
+          value: postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)
+        - name: REDIS_URL
+          value: redis://:$(REDIS_PASSWORD)@redis:6379/0
+        envFrom:
+        - configMapRef:
+            name: shop-config
+        image: "kube-foundry-worker:0.1.0"
+        imagePullPolicy: IfNotPresent
+        name: worker
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsGroup: 10001
+          runAsNonRoot: true
+          runAsUser: 10001
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - emptyDir: {}
+        name: tmp
+---
+# Source: shop/templates/statefulset-postgres.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/component: postgres
+    app.kubernetes.io/name: shop
+    app.kubernetes.io/part-of: kube-foundry
+  name: postgres
+  namespace: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: postgres
+      app.kubernetes.io/name: shop
+  serviceName: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: postgres
+        app.kubernetes.io/name: shop
+        app.kubernetes.io/part-of: kube-foundry
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_DB
+              name: shop-runtime
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_USER
+              name: shop-runtime
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: shop-runtime
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        image: "postgres:17.11-alpine3.24"
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -ec
+            - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+          failureThreshold: 6
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 3
+        name: postgres
+        ports:
+        - containerPort: 5432
+          name: postgres
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -ec
+            - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+          failureThreshold: 6
+          periodSeconds: 5
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsGroup: 70
+          runAsNonRoot: true
+          runAsUser: 70
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: data
+      securityContext:
+        fsGroup: 70
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 70
+        runAsNonRoot: true
+        runAsUser: 70
+      terminationGracePeriodSeconds: 30
+  volumeClaimTemplates:
+  - metadata:
+      labels:
+        app.kubernetes.io/component: postgres
+        app.kubernetes.io/name: shop
+        app.kubernetes.io/part-of: kube-foundry
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: "1Gi"
+---
+# Source: shop/templates/certificate-shop-local.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: shop-local
+  namespace: shop
+spec:
+  dnsNames:
+  - shop.localhost
+  duration: 2160h
+  issuerRef:
+    kind: Issuer
+    name: local-selfsigned
+  privateKey:
+    algorithm: ECDSA
+    rotationPolicy: Always
+    size: 256
+  renewBefore: 360h
+  secretName: shop-local-tls
+  subject:
+    organizations:
+    - kube-foundry local development
+---
+# Source: shop/templates/envoyproxy-shop.yaml
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: shop
+  namespace: shop
+spec:
+  provider:
+    kubernetes:
+      envoyService:
+        type: ClusterIP
+    type: Kubernetes
+---
+# Source: shop/templates/gateway-shop.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: shop
+  namespace: shop
+spec:
+  gatewayClassName: kube-foundry
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: shop
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: Same
+    hostname: shop.localhost
+    name: http
+    port: 80
+    protocol: HTTP
+  - allowedRoutes:
+      namespaces:
+        from: Same
+    hostname: shop.localhost
+    name: https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - name: shop-local-tls
+      mode: Terminate
+---
+# Source: shop/templates/httproute-shop.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: shop
+  namespace: shop
+spec:
+  hostnames:
+  - shop.localhost
+  parentRefs:
+  - name: shop
+    sectionName: http
+  - name: shop
+    sectionName: https
+  rules:
+  - backendRefs:
+    - name: api
+      port: 8000
+    matches:
+    - path:
+        type: PathPrefix
+        value: /api
+  - backendRefs:
+    - name: web
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+---
+# Source: shop/templates/issuer-local-selfsigned.yaml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: local-selfsigned
+  namespace: shop
+spec:
+  selfSigned: {}

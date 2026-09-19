@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
+SHOP_HOST=${SHOP_HOST:-shop.localhost}
+
 work_dir=$(mktemp -d)
 port_forward_pid=''
 cleanup() {
@@ -26,44 +28,51 @@ port_forward_pid=$!
 
 http() {
   curl --noproxy '*' --connect-timeout 3 --max-time 10 --fail --silent --show-error \
-    --resolve shop.localhost:18080:127.0.0.1 "http://shop.localhost:18080$1"
+    --resolve "$SHOP_HOST":18080:127.0.0.1 "http://$SHOP_HOST:18080$1"
 }
 https() {
   curl --noproxy '*' --connect-timeout 3 --max-time 10 --fail --silent --show-error \
-    --cacert "$work_dir/cert.pem" --resolve shop.localhost:18443:127.0.0.1 "$@"
+    --cacert "$work_dir/cert.pem" --resolve "$SHOP_HOST":18443:127.0.0.1 "$@"
 }
 
 attempt=0
 until http / >/dev/null 2>&1; do
+  if ! kill -0 "$port_forward_pid" 2>/dev/null; then
+    cat "$work_dir/port-forward.log"
+    exit 1
+  fi
   attempt=$((attempt + 1))
   if [ "$attempt" -ge 30 ]; then cat "$work_dir/port-forward.log"; exit 1; fi
   sleep 1
 done
 
+# Fail if another process owns the test ports, even when it serves a healthy app.
+kill -0 "$port_forward_pid"
+
 http / | grep -q 'id="item-form"'
 http /api/items | python -c 'import json,sys; assert isinstance(json.load(sys.stdin), list)'
-https https://shop.localhost:18443/ | grep -q 'id="item-form"'
-https https://shop.localhost:18443/app.js | grep -q '/api/items'
+https https://$SHOP_HOST:18443/ | grep -q 'id="item-form"'
+https https://$SHOP_HOST:18443/app.js | grep -q '/api/items'
 https -X POST -H 'Content-Type: application/json' -d '{"name":"traffic-smoke-item"}' \
-  https://shop.localhost:18443/api/items |
+  https://$SHOP_HOST:18443/api/items |
   python -c 'import json,sys; assert json.load(sys.stdin)["name"] == "traffic-smoke-item"'
-https https://shop.localhost:18443/api/items |
+https https://$SHOP_HOST:18443/api/items |
   python -c 'import json,sys; assert any(i["name"] == "traffic-smoke-item" for i in json.load(sys.stdin))'
 
 # An unknown API path must remain an API 404, not fall through to the SPA.
 code=$(curl --noproxy '*' --silent --show-error --max-time 10 --output /dev/null --write-out '%{http_code}' \
-  --resolve shop.localhost:18080:127.0.0.1 http://shop.localhost:18080/api/not-found)
+  --resolve "$SHOP_HOST":18080:127.0.0.1 http://$SHOP_HOST:18080/api/not-found)
 test "$code" = 404
 # A different Host must not reach the app.
 code=$(curl --noproxy '*' --silent --show-error --max-time 10 --output /dev/null --write-out '%{http_code}' \
   -H 'Host: unknown.localhost' http://127.0.0.1:18080/)
 test "$code" = 404
 
-job_id=$(https -X POST https://shop.localhost:18443/api/jobs |
+job_id=$(https -X POST https://$SHOP_HOST:18443/api/jobs |
   python -c 'import json,sys; print(json.load(sys.stdin)["id"])')
 attempt=0
 while [ "$attempt" -lt 20 ]; do
-  state=$(https "https://shop.localhost:18443/api/jobs/$job_id" |
+  state=$(https "https://$SHOP_HOST:18443/api/jobs/$job_id" |
     python -c 'import json,sys; print(json.load(sys.stdin)["status"])')
   if [ "$state" = complete ]; then
     echo 'PASS: HTTP/HTTPS web and API routing, certificate trust, item creation, job completion, and unmatched routes.'

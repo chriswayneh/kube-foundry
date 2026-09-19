@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+replicas:
+  - name: api
+    count: 2
+  - name: web
+    count: 2
+  - name: worker
+    count: 1
+images:
+  - name: kube-foundry-api
+    newTag: 0.1.0
+  - name: kube-foundry-worker
+    newTag: 0.1.0
+  - name: kube-foundry-web
+    newTag: 0.1.0
+patches:
+  - target:
+      kind: Gateway
+      name: shop
+    patch: |-
+      - op: replace
+        path: /spec/listeners/0/hostname
+        value: shop.staging.localhost
+      - op: replace
+        path: /spec/listeners/1/hostname
+        value: shop.staging.localhost
+  - target:
+      kind: HTTPRoute
+      name: shop
+    patch: |-
+      - op: replace
+        path: /spec/hostnames/0
+        value: shop.staging.localhost
+  - target:
+      kind: Certificate
+      name: shop-local
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: shop.staging.localhost
+  - target:
+      kind: Deployment
+      name: api
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests
+        value: {cpu: 75m, memory: 96Mi}

@@ -1,0 +1,31 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: shop
+  namespace: {{ .Release.Namespace }}
+spec:
+  gatewayClassName: {{ .Values.gateway.className }}
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: shop
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: Same
+    hostname: {{ .Values.gateway.hostname }}
+    name: http
+    port: 80
+    protocol: HTTP
+  - allowedRoutes:
+      namespaces:
+        from: Same
+    hostname: {{ .Values.gateway.hostname }}
+    name: https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - name: shop-local-tls
+      mode: Terminate

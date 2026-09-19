@@ -14,7 +14,7 @@
 
 ## ADR-003: Helm plus Kustomize
 
-**Status:** accepted for phase 5. **Decision:** Helm packages the reusable shop application; Kustomize overlays change replicas, resources, hostnames, and image tags for dev/staging/prod. **Why:** this keeps templates in one place while environment deltas remain plain YAML. **Consequence:** generated YAML is validated in CI and overlays must not duplicate chart templates.
+**Status:** implemented in phase 5. **Decision:** Helm packages the reusable shop application; Kustomize overlays change replicas, resources, hostnames, and image tags for dev/staging/prod. **Why:** this keeps templates in one place while environment deltas remain plain YAML. **Consequence:** the committed Helm render is checked for drift before deployment. Application resources remain managed by kubectl, avoiding a Helm ownership migration for the existing stack. Environments target separate clusters. CI integration is planned for phase 8.
 
 ## ADR-004: Argo CD instead of Flux
 

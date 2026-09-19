@@ -1,0 +1,21 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: shop-local
+  namespace: {{ .Release.Namespace }}
+spec:
+  dnsNames:
+  - {{ .Values.gateway.hostname }}
+  duration: 2160h
+  issuerRef:
+    kind: Issuer
+    name: local-selfsigned
+  privateKey:
+    algorithm: ECDSA
+    rotationPolicy: Always
+    size: 256
+  renewBefore: 360h
+  secretName: shop-local-tls
+  subject:
+    organizations:
+    - kube-foundry local development

@@ -16,6 +16,7 @@ It's still under construction. I keep adding one layer at a time and try to leav
 - Default-deny network policies with explicit API/worker data paths
 - Envoy Gateway routing for the web frontend and API
 - Local HTTPS certificates issued and renewed by cert-manager
+- A shared Helm chart with dev, staging, and prod Kustomize overlays
 - Multi-stage, non-root containers with pinned versions
 - A few smoke and failure tests so I can tell when I break something
 
@@ -52,7 +53,7 @@ cp .env.example .env
 make cluster
 make build
 make load
-make deploy-phase4
+make deploy-phase5
 make smoke
 make smoke-traffic
 make status
@@ -88,13 +89,13 @@ The exact commands and failure notes are in [docs/failures.md](docs/failures.md)
 
 ## Roadmap
 
-- Turning the app manifests into a Helm chart
-- Dev, staging, and prod-flavored overlays
 - Service accounts, RBAC, restricted Pod Security, and Kyverno
 - Prometheus, Grafana, autoscaling, and disruption budgets
 - Argo CD and a small GitHub Actions pipeline
 
 The rough build checklist is in [docs/phases.md](docs/phases.md). It will probably move around as the project does.
+
+Chart usage, environment differences, and clean-cluster setup are in [docs/packaging.md](docs/packaging.md).
 
 ## License
 

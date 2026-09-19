@@ -38,9 +38,10 @@ Every phase must end with healthy workloads, updated documentation, and reproduc
 
 ## Phase 5: packaging and environments
 
-- [ ] Package shop as Helm chart
-- [ ] Add dev/staging/prod Kustomize overlays
-- [ ] Verify `make deploy-phase5` from a clean cluster
+- [x] Package shop as Helm chart
+- [x] Add dev/staging/prod Kustomize overlays
+- [x] Verify `make deploy-phase5` from a clean cluster (2026-09-19)
+- [x] Verify all three profiles through HTTPS and preserve existing development PVCs during migration
 
 ## Phase 6: security
 

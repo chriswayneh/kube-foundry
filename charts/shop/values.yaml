@@ -1,0 +1,35 @@
+existingSecret: shop-runtime
+gateway:
+  hostname: shop.localhost
+  className: kube-foundry
+  controllerNamespace: envoy-gateway-system
+api:
+  image: kube-foundry-api:0.1.0
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 200m, memory: 256Mi}
+worker:
+  image: kube-foundry-worker:0.1.0
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 200m, memory: 256Mi}
+web:
+  image: kube-foundry-web:0.1.0
+  replicas: 1
+  resources:
+    requests: {cpu: 25m, memory: 32Mi}
+    limits: {cpu: 100m, memory: 64Mi}
+postgres:
+  image: postgres:17.11-alpine3.24
+  storage: 1Gi
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+redis:
+  image: redis:7.4.11-alpine3.21
+  storage: 512Mi
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {cpu: 200m, memory: 256Mi}

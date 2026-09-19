@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "existingSecret",
+    "gateway",
+    "api",
+    "worker",
+    "web",
+    "postgres",
+    "redis"
+  ],
+  "properties": {
+    "existingSecret": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gateway": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hostname",
+        "className",
+        "controllerNamespace"
+      ],
+      "properties": {
+        "hostname": {
+          "type": "string",
+          "minLength": 1
+        },
+        "className": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controllerNamespace": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "resources",
+        "replicas"
+      ],
+      "properties": {
+        "image": {
+          "type": "string",
+          "pattern": "^[^\\s]+:[^\\s]+$"
+        },
+        "resources": {
+          "type": "object",
+          "required": [
+            "requests",
+            "limits"
+          ],
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          }
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "worker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "resources",
+        "replicas"
+      ],
+      "properties": {
+        "image": {
+          "type": "string",
+          "pattern": "^[^\\s]+:[^\\s]+$"
+        },
+        "resources": {
+          "type": "object",
+          "required": [
+            "requests",
+            "limits"
+          ],
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          }
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "web": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "resources",
+        "replicas"
+      ],
+      "properties": {
+        "image": {
+          "type": "string",
+          "pattern": "^[^\\s]+:[^\\s]+$"
+        },
+        "resources": {
+          "type": "object",
+          "required": [
+            "requests",
+            "limits"
+          ],
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          }
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "postgres": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "resources",
+        "storage"
+      ],
+      "properties": {
+        "image": {
+          "type": "string",
+          "pattern": "^[^\\s]+:[^\\s]+$"
+        },
+        "resources": {
+          "type": "object",
+          "required": [
+            "requests",
+            "limits"
+          ],
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          }
+        },
+        "storage": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*(Mi|Gi|Ti)$"
+        }
+      }
+    },
+    "redis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image",
+        "resources",
+        "storage"
+      ],
+      "properties": {
+        "image": {
+          "type": "string",
+          "pattern": "^[^\\s]+:[^\\s]+$"
+        },
+        "resources": {
+          "type": "object",
+          "required": [
+            "requests",
+            "limits"
+          ],
+          "properties": {
+            "requests": {
+              "type": "object"
+            },
+            "limits": {
+              "type": "object"
+            }
+          }
+        },
+        "storage": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*(Mi|Gi|Ti)$"
+        }
+      }
+    }
+  }
+}
