@@ -2,7 +2,9 @@
 
 A local Kubernetes reference platform for deploying containerized applications, validating platform changes, and testing recovery without cloud infrastructure.
 
-**v1.0** packages a three-node kind cluster, a small application stack, enforced workload policies, observability, and GitOps delivery. The sample application creates and lists items and processes background jobs. Its purpose is to exercise the platform, not to provide an authenticated commerce service.
+**v1.0.0 is released.** It packages a three-node kind cluster, a small application stack, enforced workload policies, observability, and GitOps delivery. The sample application creates and lists items and processes background jobs. Its purpose is to exercise the platform, not to provide an authenticated commerce service.
+
+[Release v1.0.0](https://github.com/chriswayneh/kube-foundry/releases/tag/v1.0.0) | [Quick start](#run-v10) | [Verification results](docs/release.md#acceptance-record) | [Completed roadmap](docs/phases.md)
 
 ## Architecture
 
