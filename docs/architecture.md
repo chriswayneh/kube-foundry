@@ -1,6 +1,6 @@
 # Architecture
 
-## Current system (phase 7)
+## Current system (phase 8)
 
 The `shop` namespace contains five deployed workloads: web, API, worker, PostgreSQL, and Redis. The API is stateless. PostgreSQL is a single-replica StatefulSet with a stable network identity and PVC. Redis is a single-replica Deployment with a PVC. The worker blocks on the Redis `jobs` list and records job state in PostgreSQL.
 
@@ -48,4 +48,4 @@ Prometheus discovers API metrics through a ServiceMonitor and an explicit networ
 
 `charts/shop` packages the application resources. `make render-shop` produces the committed Kustomize base, and `make check-chart` checks it for drift. Dev, staging, and prod overlays adjust stateless replica counts, API requests, hostnames, and explicit image tags. Each environment runs in a separate cluster with the same namespace and resource names. Platform controllers and GatewayClass are installed independently; runtime Secrets are never rendered into Git.
 
-Local images carry the immutable development tag `0.1.0`. `imagePullPolicy: IfNotPresent` allows kind-loaded images and never resolves `:latest`. A future release pipeline will replace the tag in GitOps overlays with a commit-derived tag or digest.
+Earlier profiles use kind-loaded development images tagged `0.1.0`. Phase 8 adds a delivery overlay: GitHub Actions builds and scans each image, publishes commit-SHA tags, and commits registry digests after anonymous pull verification. Argo CD owns application reconciliation while Helm remains responsible for bootstrapping platform controllers. See [GitOps ownership and delivery](gitops.md).

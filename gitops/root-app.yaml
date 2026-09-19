@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-foundry
+  namespace: argocd
+spec:
+  project: kube-foundry-root
+  source:
+    repoURL: https://github.com/chriswayneh/kube-foundry.git
+    targetRevision: main
+    path: gitops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true

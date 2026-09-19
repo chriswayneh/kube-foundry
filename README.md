@@ -19,6 +19,7 @@ It's still under construction. I keep adding one layer at a time and try to leav
 - A shared Helm chart with dev, staging, and prod Kustomize overlays
 - Dedicated service accounts, scoped observer RBAC, restricted Pod Security, and Kyverno admission policies
 - Prometheus metrics, a provisioned Grafana dashboard, CPU autoscaling, and disruption budgets
+- Argo CD application reconciliation and GitHub Actions validation, image scans, and GHCR delivery
 - Multi-stage, non-root containers with pinned versions
 - A few smoke and failure tests so I can tell when I break something
 
@@ -56,7 +57,7 @@ make cluster
 make build
 make load
 make deploy-phase7
-make security-check
+make deploy-phase8
 make smoke
 make smoke-traffic
 make status
@@ -93,9 +94,11 @@ make cluster-delete
 
 The exact commands and failure notes are in [docs/failures.md](docs/failures.md). Architecture notes and tradeoffs are in [docs/architecture.md](docs/architecture.md) and [docs/decisions.md](docs/decisions.md).
 
-## Roadmap
+## Delivery
 
-- Argo CD and a small GitHub Actions pipeline
+GitHub Actions validates changes, scans application images, publishes commit-tagged images to GHCR, and updates the development overlay with immutable digests. Argo CD reconciles the platform configuration and shop application from Git. First-time GHCR package visibility requires setup; failed scans or inaccessible images leave the deployment unchanged.
+
+See [GitOps setup, ownership, and recovery](docs/gitops.md). Future work includes reviewed environment promotion, alerting, and stronger data-service availability.
 
 The rough build checklist is in [docs/phases.md](docs/phases.md). It will probably move around as the project does.
 

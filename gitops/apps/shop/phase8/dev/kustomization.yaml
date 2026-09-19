@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../phase7/dev
+# Updated only after all three scanned images are anonymously pullable.
+images:
+  - name: kube-foundry-api
+    newName: kube-foundry-api
+    newTag: 0.1.0
+  - name: kube-foundry-worker
+    newName: kube-foundry-worker
+    newTag: 0.1.0
+  - name: kube-foundry-web
+    newName: kube-foundry-web
+    newTag: 0.1.0

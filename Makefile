@@ -12,6 +12,7 @@ CERT_MANAGER_VERSION ?= v1.21.2
 KYVERNO_VERSION ?= 3.9.1
 MONITORING_VERSION ?= 91.4.1
 METRICS_SERVER_VERSION ?= 3.14.0
+ARGOCD_VERSION ?= 10.9.2
 APPLICATION_OVERLAY ?= gitops/apps/shop/overlays/$(ENVIRONMENT)
 API_IMAGE := kube-foundry-api:$(IMAGE_TAG)
 WORKER_IMAGE := kube-foundry-worker:$(IMAGE_TAG)
@@ -142,6 +143,24 @@ grafana-access:
 prometheus-access:
 	kubectl -n monitoring port-forward --address 127.0.0.1 service/monitoring-prometheus 9090:9090
 
+.PHONY: gitops-platform deploy-phase8 gitops-check argocd-access
+
+gitops-platform:
+	helm upgrade --install argocd argo-cd --repo https://argoproj.github.io/argo-helm --version $(ARGOCD_VERSION) --namespace argocd --create-namespace -f gitops/platform/argocd-values.yaml --wait --timeout 300s
+	kubectl apply -f gitops/projects.yaml
+
+# Bootstrap controllers and credentials first with deploy-phase7 on a new cluster.
+deploy-phase8: gitops-platform
+	kubectl -n shop get secret shop-runtime >/dev/null
+	kubectl apply -f gitops/root-app.yaml
+	$(MAKE) gitops-check
+
+gitops-check:
+	python scripts/check-gitops.py
+
+argocd-access:
+	kubectl -n argocd port-forward --address 127.0.0.1 service/argocd-server 8081:443
+
 smoke:
 	@sh scripts/smoke.sh
 
@@ -149,6 +168,8 @@ status:
 	kubectl get pods,svc,pvc,networkpolicy -n shop -o wide
 
 validate: check-chart
+	kubectl kustomize gitops >/dev/null
+	kubectl kustomize gitops/apps/shop/phase8/dev >/dev/null
 	@for environment in dev staging prod; do kubectl kustomize gitops/apps/shop/phase7/$$environment >/dev/null || exit 1; done
 	kubectl kustomize gitops/platform/monitoring >/dev/null
 	kubectl kustomize clusters/kind/manifests/phase1 >/dev/null

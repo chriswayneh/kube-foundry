@@ -1,0 +1,83 @@
+name: Publish and deploy
+'on':
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - README.md
+      - gitops/apps/shop/phase8/dev/kustomization.yaml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: publish-and-deploy-main
+  cancel-in-progress: false
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/ci.yaml
+  publish:
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [api, worker, web]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9  # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build, scan, and publish
+        run: bash scripts/ci-image.sh '${{ matrix.component }}' publish
+      - name: Publication help
+        if: failure()
+        run: |
+          echo 'Check repository Actions permissions and package access. See docs/gitops.md.'
+  update:
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: main
+      - name: Reject stale delivery
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA" || {
+            echo 'Main advanced during the build. Leave the overlay unchanged and run the newest delivery.'
+            exit 1
+          }
+      - uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d  # v5.1.0
+        with:
+          version: v1.37.0
+      - name: Verify anonymous pulls and update all image digests
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          python scripts/update-images.py --revision "$SOURCE_SHA"
+          kubectl kustomize gitops/apps/shop/phase8/dev >/dev/null
+      - name: Commit delivery
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add gitops/apps/shop/phase8/dev/kustomization.yaml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Deploy scanned application image digests'
+          git push origin HEAD:main || {
+            echo 'Push rejected. Do not force-push. Check branch rules or rerun delivery for current main.'
+            exit 1
+          }

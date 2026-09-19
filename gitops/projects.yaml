@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: kube-foundry-root
+  namespace: argocd
+spec:
+  sourceRepos: [https://github.com/chriswayneh/kube-foundry.git]
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+  namespaceResourceWhitelist:
+    - group: argoproj.io
+      kind: Application
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: kube-foundry-platform
+  namespace: argocd
+spec:
+  sourceRepos: [https://github.com/chriswayneh/kube-foundry.git]
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: monitoring
+    - server: https://kubernetes.default.svc
+      namespace: shop
+  clusterResourceWhitelist:
+    - group: gateway.networking.k8s.io
+      kind: GatewayClass
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: ConfigMap
+    - group: policies.kyverno.io
+      kind: NamespacedValidatingPolicy
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: kube-foundry-shop
+  namespace: argocd
+spec:
+  sourceRepos: [https://github.com/chriswayneh/kube-foundry.git]
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: shop
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: ServiceAccount
+    - group: ''
+      kind: ConfigMap
+    - group: ''
+      kind: Service
+    - group: ''
+      kind: PersistentVolumeClaim
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+    - group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+    - group: cert-manager.io
+      kind: Issuer
+    - group: cert-manager.io
+      kind: Certificate
+    - group: monitoring.coreos.com
+      kind: ServiceMonitor
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget

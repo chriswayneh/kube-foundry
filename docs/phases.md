@@ -56,5 +56,6 @@ Every phase must end with healthy workloads, updated documentation, and reproduc
 
 ## Phase 8: GitOps and CI
 
-- [ ] Add Argo CD root/child applications and pinned installation
-- [ ] Add PR validation/scanning and main image-publish/update workflows
+- [x] Add Argo CD root/child applications and pinned installation
+- [x] Add PR validation/scanning and main image-publish/update workflows
+- [ ] Verify GitHub delivery and live Argo reconciliation end to end
