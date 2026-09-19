@@ -93,4 +93,8 @@ The v1.0 delivery phases are complete. Future enhancements are separated into th
 
 ## License
 
-MIT.
+Licensed under the MIT License. Use it, fork it, modify it, or build something of your own. See [LICENSE](LICENSE) for the terms.
+
+---
+
+If this project helped you, a ⭐ is appreciated.
