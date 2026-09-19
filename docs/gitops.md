@@ -16,7 +16,7 @@ kube-foundry
 
 AppProjects allow only this repository, the local cluster, and the required resource kinds/namespaces. Projects and the root Application are bootstrapped outside their child sources. Argo's controller itself still has broad cluster privileges; project allowlists do not make untrusted repository writers safe. Protect main and review manifest changes.
 
-On a new cluster, prepare `.env` with local credentials, then run:
+For the v1.0 release, use `make init-env`, `make cluster`, and `make install GITOPS_REVISION=v1.0.0` as described in the [release guide](release.md). This pins root and child revisions and installs published images without local builds. The commands below retain the historical phase-by-phase development workflow, which follows main by default:
 
 ```bash
 make cluster

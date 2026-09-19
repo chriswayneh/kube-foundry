@@ -13,6 +13,7 @@ KYVERNO_VERSION ?= 3.9.1
 MONITORING_VERSION ?= 91.4.1
 METRICS_SERVER_VERSION ?= 3.14.0
 ARGOCD_VERSION ?= 10.9.2
+GITOPS_REVISION ?= main
 APPLICATION_OVERLAY ?= gitops/apps/shop/overlays/$(ENVIRONMENT)
 API_IMAGE := kube-foundry-api:$(IMAGE_TAG)
 WORKER_IMAGE := kube-foundry-worker:$(IMAGE_TAG)
@@ -152,8 +153,22 @@ gitops-platform:
 # Bootstrap controllers and credentials first with deploy-phase7 on a new cluster.
 deploy-phase8: gitops-platform
 	kubectl -n shop get secret shop-runtime >/dev/null
-	kubectl apply -f gitops/root-app.yaml
+	python scripts/bootstrap-gitops.py --revision "$(GITOPS_REVISION)"
 	$(MAKE) gitops-check
+
+.PHONY: init-env install verify
+
+init-env:
+	python scripts/init-env.py --output "$(ENV_FILE)"
+
+# The release path uses published digests, not locally built development images.
+install:
+	$(MAKE) secret traffic-platform security-platform monitoring-platform gitops-platform
+	python scripts/bootstrap-gitops.py --revision "$(GITOPS_REVISION)"
+	$(MAKE) verify
+
+verify:
+	$(MAKE) gitops-check security-check monitoring-check smoke-traffic
 
 gitops-check:
 	python scripts/check-gitops.py

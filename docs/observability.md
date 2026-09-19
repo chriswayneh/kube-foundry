@@ -38,6 +38,7 @@ The **kube-foundry / Shop** dashboard is provisioned from `gitops/platform/monit
 - Prometheus retains up to 24 hours of samples, with an 800 MB retention-size limit and a 1 GiB local PVC. Cluster deletion removes local storage; this is not a backup or durable monitoring service.
 - Alertmanager, default alert rules/dashboards, node exporter, and control-plane/kubelet scrapes are disabled. This is application-focused monitoring, not full cluster coverage or paging.
 - Grafana is ephemeral. Dashboard and datasource provisioning are reproducible from configuration; manual UI changes are not durable.
+- Automatic optional Grafana plugin installation is disabled in v1.0, avoiding unrelated downloads during startup.
 - kube-state-metrics provides workload, HPA, and disruption-budget state.
 - Only Prometheus-labeled Pods in namespace `monitoring` gain ingress to API TCP port 8000. NetworkPolicy restricts ports, not HTTP paths; this permission reaches more than `/metrics`. Existing default-deny policies remain in place.
 - Metrics Server uses `--kubelet-insecure-tls` for kind's local kubelet certificates. This is a development-only exception. Its aggregated API uses a chart-generated certificate and CA verification, not `insecureSkipTLSVerify`. Use trusted kubelet certificates outside this local setup.

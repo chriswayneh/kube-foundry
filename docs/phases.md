@@ -2,6 +2,8 @@
 
 Every phase must end with healthy workloads, updated documentation, and reproducible verification.
 
+Phases 1-8 deliver the platform. Phase 9 closes the v1.0 release; optional enhancements are not release blockers.
+
 ## Phase 1: cluster and first workload
 
 - [x] Pin kind node image by version and digest
@@ -59,3 +61,23 @@ Every phase must end with healthy workloads, updated documentation, and reproduc
 - [x] Add Argo CD root/child applications and pinned installation
 - [x] Add PR validation/scanning and main image-publish/update workflows
 - [x] Verify GitHub delivery, anonymous GHCR pulls, digest rollout, and live Argo self-healing (2026-09-19)
+
+## Phase 9: v1.0 release acceptance
+
+- [x] Define the local reference-platform scope and explicit support boundaries
+- [x] Install from published images on an isolated, clean three-node cluster
+- [x] Verify a failed image rollout and recovery to the known-good GitOps source
+- [x] Back up PostgreSQL and verify restoration into a separate database
+- [x] Capture actual Argo CD and Grafana screenshots without credentials
+- [x] Publish setup, upgrade, recovery, teardown, and verification instructions
+- [ ] Publish v1.0.0 with release notes and recorded acceptance evidence
+
+## Optional post-v1.0 backlog
+
+- Reviewed promotion into separate staging/production clusters
+- Alerting and service-level objectives
+- Automated encrypted off-cluster backups and data-service availability
+- SSO and trusted certificates for shared deployments
+- Canary delivery using Gateway traffic weights
+
+Cloud infrastructure is out of scope unless explicitly requested. See [release acceptance](release.md).

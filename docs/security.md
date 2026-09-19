@@ -4,7 +4,7 @@
 
 The public Git repository and built images are untrusted inputs until reviewed. The local workstation, Docker daemon, and kind control plane are trusted for development. Data and credentials inside `shop` are protected assets; Envoy exposes the web frontend and API to local clients.
 
-## Implemented controls (phases 1-6)
+## Implemented controls
 
 - Real credentials and kubeconfigs are excluded from Git. `make secret` creates `shop-runtime` from ignored `.env` at runtime.
 - Every image uses an explicit version; the kind node image is pinned by tag and digest.
@@ -32,7 +32,7 @@ kindnet does not enforce NetworkPolicy. `cluster.yaml` therefore disables the de
 | Workload token theft | Dedicated accounts with no grants and no mounted API token | Short-lived, scoped credentials if API access is added |
 | Lateral movement | Default-deny policies, restricted PSA, and Kyverno admission | Additional policy coverage as dependencies grow |
 | Secret disclosure | Runtime Secret, no observer access to Secrets, dummy SOPS example | Managed encryption keys, rotation, and controlled GitOps decryption |
-| Malicious image | Exact tags, non-root runtime | Trivy in CI, digest updates, signing/admission in production |
+| Malicious image | Non-root runtime, Trivy high/critical gate, digest-pinned GitOps delivery | Signing, provenance enforcement, and production admission |
 
 ## Credential rules
 

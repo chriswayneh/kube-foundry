@@ -14,7 +14,7 @@
 
 ## ADR-003: Helm plus Kustomize
 
-**Status:** implemented in phase 5. **Decision:** Helm packages the reusable shop application; Kustomize overlays change replicas, resources, hostnames, and image tags for dev/staging/prod. **Why:** this keeps templates in one place while environment deltas remain plain YAML. **Consequence:** the committed Helm render is checked for drift before deployment. Application resources remain managed by kubectl, avoiding a Helm ownership migration for the existing stack. Environments target separate clusters. CI integration is planned for phase 8.
+**Status:** implemented. **Decision:** Helm packages the reusable shop application; Kustomize overlays change replicas, resources, hostnames, and image references. **Why:** templates stay in one place while environment deltas remain reviewable YAML. **Consequence:** CI checks the committed Helm render for drift. Argo CD owns application reconciliation from phase 8; Helm owns controller releases. Environments target separate clusters.
 
 ## ADR-004: Argo CD instead of Flux
 
@@ -26,4 +26,8 @@
 
 ## ADR-006: credentials are runtime inputs
 
-**Status:** accepted and implemented. **Decision:** commit only `.env.example`; create `shop-runtime` from ignored `.env` during deployment. **Why:** base64 Kubernetes Secret manifests are not encryption and do not belong in a public repository. **Consequence:** each operator must provision local values; phase 6 will add a dummy encrypted example for a GitOps-safe pattern.
+**Status:** accepted and implemented. **Decision:** keep credentials outside Git and create `shop-runtime` from ignored `.env` during deployment. **Why:** base64 Kubernetes Secret manifests are not encryption. **Consequence:** `make init-env` generates local credentials without overwriting existing values. The dummy SOPS example illustrates encryption but does not manage live decryption or key rotation.
+
+## ADR-008: bounded v1.0 release
+
+**Status:** accepted for v1.0. **Decision:** ship a local reference platform with a tagged, reproducible GitOps source and explicit operational limits. **Why:** a fresh install and recovery evidence define a useful finish line without adding cloud services or pretending single-instance data stores are highly available. **Consequence:** release installation pins all Application revisions; following main is an explicit choice. Backup restores target a new database, and failure drills are restricted to a disposable release cluster. Advanced promotion, availability, and alerting remain optional backlog items.

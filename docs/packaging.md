@@ -1,5 +1,7 @@
 # Packaging and environments
 
+For the released platform, start with the [v1.0 install and operations guide](release.md). The phase-5 commands and replica table below describe the packaging checkpoint, not the final autoscaled release. Phase 8 uses published GHCR digests, and Argo CD owns application reconciliation. Do not apply historical phase overlays over an Argo-managed installation.
+
 The Helm chart is the shared source for application resources. Its committed render in `gitops/apps/shop/base/shop.yaml` makes the result reviewable and lets Kustomize deploy it without Helm plugins. Dev, staging, and prod overlays carry only environment differences. Phase 1-4 manifests remain historical checkpoints; phase 5 no longer includes them as application bases.
 
 ## Environment profiles
@@ -10,9 +12,9 @@ The Helm chart is the shared source for application resources. Its committed ren
 | staging | shop.staging.localhost | 2 / 2 | 75m / 96Mi |
 | prod | shop.prod.localhost | 3 / 3 | 100m / 128Mi |
 
-All profiles pin application images to `0.1.0`, preserve resource limits, and keep worker, PostgreSQL, and Redis at one replica. Image tags are explicit in each overlay so a later release pipeline can update them independently. Hostname patches keep Gateway listeners, HTTPRoute, and Certificate SANs aligned.
+These historical profiles pin application images to `0.1.0`, preserve resource limits, and keep worker, PostgreSQL, and Redis at one replica. The release pipeline updates the separate phase-8 dev overlay with GHCR digests. Hostname patches keep Gateway listeners, HTTPRoute, and Certificate SANs aligned.
 
-Each environment is intended for a separate cluster using the `shop` namespace. Applying another overlay to the same cluster replaces that cluster's profile; these are not three isolated installations within one cluster. `prod` is a configuration example, not a production readiness claim. Authentication, trusted certificates, backups, data-store availability, and later security controls remain necessary before real production use.
+Each environment is intended for a separate cluster using the `shop` namespace. Applying another overlay to the same cluster replaces that cluster's profile; these are not three isolated installations within one cluster. `prod` is a configuration example, not a production readiness claim. Authentication, trusted certificates, off-cluster backup automation, and data-store availability remain necessary before real production use.
 
 ## Render, check, and deploy
 
