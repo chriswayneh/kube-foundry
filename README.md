@@ -59,6 +59,17 @@ Open **http://shop.localhost:8080** or **https://shop.localhost:8443** while the
 - High/critical image vulnerability gates and immutable GHCR digest delivery
 - Backup/restore tooling and repeatable recovery exercises
 
+## Zero-trust principles and trust boundaries
+
+The platform applies zero-trust principles to application networking and workload permissions. Running inside the cluster does not by itself grant access to another workload or the Kubernetes API.
+
+- **Explicit network paths:** Cilium enforces default-deny application ingress and egress, with documented allowances for required traffic.
+- **Least-privilege identities:** workload service accounts have no RoleBindings and do not mount API tokens. The namespace-scoped observer cannot read Secrets, exec into Pods, or change workloads.
+- **Enforced workload constraints:** restricted Pod Security and Kyverno admission policies constrain what can run, alongside non-root execution and dropped capabilities.
+- **Verification evidence:** policy checks exercise allowed and denied operations. Release acceptance records what was actually tested.
+
+This is not a complete zero-trust architecture: application endpoints have no user authentication, and the workstation, Docker daemon, control plane, and privileged platform administrators remain trusted. Local TLS does not provide application identity. See the [security model](docs/security.md), [policy checks](policy/README.md), and [release limitations](docs/release.md#release-contract).
+
 ## Screenshots
 
 Actual development-cluster captures, not mockups. [Capture details](docs/release.md#screenshots).
