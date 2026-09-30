@@ -36,6 +36,23 @@ def prometheus(path):
                    "/api/v1/namespaces/monitoring/services/http:monitoring-prometheus:9090/proxy" + path)
 
 
+def verify_rules(payload):
+    assert payload.get("status") == "success", "Prometheus rules query failed"
+    groups = payload["data"]["groups"]
+    group = next((entry for entry in groups if entry["name"] == "kube-foundry-shop-slo"), None)
+    assert group is not None, "Shop SLO rule group not loaded"
+    rules = {rule.get("name"): rule for rule in group["rules"]}
+    expected = {"shop:api_requests:rate5m", "shop:api_success_ratio:rate5m",
+                "shop:api_p95_latency_seconds:rate5m", "ShopApiTargetUnavailable",
+                "ShopApiErrorBudgetBurning", "ShopApiLatencyHigh"}
+    assert expected <= rules.keys(), "Shop SLO rules missing"
+    for name in expected:
+        rule = rules[name]
+        assert rule.get("health") == "ok" and not rule.get("lastError"), f"Rule evaluation failed: {name}"
+        evaluated = rule.get("lastEvaluation")
+        assert evaluated and not evaluated.startswith("0001"), f"Rule not evaluated: {name}"
+
+
 def main():
     def targets_ready():
         targets = prometheus("/api/v1/targets")["data"]["activeTargets"]
@@ -51,12 +68,7 @@ def main():
     eventually(series_ready)
 
     def rules_ready():
-        groups = prometheus("/api/v1/rules")["data"]["groups"]
-        group = next((entry for entry in groups if entry["name"] == "kube-foundry-shop-slo"), None)
-        assert group is not None, "Shop SLO rule group not loaded"
-        names = {rule.get("name") for rule in group["rules"]}
-        assert {"shop:api_requests:rate5m", "shop:api_success_ratio:rate5m",
-                "ShopApiTargetUnavailable", "ShopApiErrorBudgetBurning", "ShopApiLatencyHigh"} <= names
+        verify_rules(prometheus("/api/v1/rules"))
     eventually(rules_ready)
 
     def hpa_ready():

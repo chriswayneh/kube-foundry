@@ -11,15 +11,13 @@ spec:
     - name: kube-foundry-shop-slo
       rules:
         - record: shop:api_requests:rate5m
-          expr: sum(rate(http_requests_total{namespace="shop",service="api",path=~"/api/.*"}[5m])) or vector(0)
+          expr: sum(rate(http_requests_total{namespace="shop",service="api",path=~"/api/.*"}[5m]))
         - record: shop:api_success_ratio:rate5m
           expr: >-
-            (sum(rate(http_requests_total{
-            namespace="shop", service="api", path=~"/api/.*", status=~"2.."
+            1 - ((sum(rate(http_requests_total{
+            namespace="shop", service="api", path=~"/api/.*", status=~"5.."
             }[5m])) or vector(0))
-            / clamp_min(sum(rate(http_requests_total{
-            namespace="shop", service="api", path=~"/api/.*"
-            }[5m])) or vector(0), 1)
+            / (shop:api_requests:rate5m > 0))
         - record: shop:api_p95_latency_seconds:rate5m
           expr: >-
             histogram_quantile(0.95,
@@ -27,16 +25,18 @@ spec:
             namespace="shop", service="api", path=~"/api/.*"
             }[5m])))
         - alert: ShopApiTargetUnavailable
-          expr: min(up{namespace="shop",service="api"}) < 1
+          expr: >-
+            (min(up{namespace="shop",service="api"}) < 1)
+            or (sum(absent(up{namespace="shop",service="api"})) == 1)
           for: 2m
           labels:
             severity: warning
             scope: local
           annotations:
             summary: Shop API scrape target is unavailable
-            description: At least one discovered Shop API metrics target has been down for two minutes.
+            description: A Shop API metrics target is down or all API targets have been absent for two minutes.
         - alert: ShopApiErrorBudgetBurning
-          expr: (shop:api_requests:rate5m > 0.1) and ((1 - shop:api_success_ratio:rate5m) > 0.02)
+          expr: (shop:api_requests:rate5m > 0.1) and (shop:api_success_ratio:rate5m < 0.98)
           for: 5m
           labels:
             severity: warning

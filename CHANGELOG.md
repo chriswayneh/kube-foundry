@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Add local 5-minute API reliability signals and Prometheus diagnostic alerts without introducing paging or a production SLO commitment.
+- Permit PrometheusRule resources in the platform Argo project; handle low traffic, idle periods, client errors, and missing targets correctly.
+- Evaluate deployed expressions with pinned promtool in CI, and reject missing or failed live rule evaluations.
+- Live cluster acceptance and release of these changes remain pending.
 
 ## v1.1.0 - 2026-09-29
 

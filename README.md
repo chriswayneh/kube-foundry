@@ -55,10 +55,12 @@ Open **http://shop.localhost:8080** or **https://shop.localhost:8443** while the
 - Envoy Gateway routing and cert-manager local TLS
 - Helm application packaging and dev/staging/prod configuration examples
 - Prometheus, Grafana, CPU autoscaling, and voluntary disruption budgets
-- Prometheus recording rules and local diagnostic alert visibility for API reliability signals
 - Argo CD reconciliation and SHA-pinned GitHub Actions
 - High/critical image vulnerability gates and immutable GHCR digest delivery
 - Backup/restore tooling and repeatable recovery exercises
+
+On this development branch, [local reliability signals](docs/observability.md#local-reliability-signals-unreleased)
+add Prometheus rules and two dashboard panels. They are unreleased and await live cluster acceptance.
 
 ## Zero-trust principles and trust boundaries
 

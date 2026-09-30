@@ -19,7 +19,9 @@ API_IMAGE := kube-foundry-api:$(IMAGE_TAG)
 WORKER_IMAGE := kube-foundry-worker:$(IMAGE_TAG)
 WEB_IMAGE := kube-foundry-web:$(IMAGE_TAG)
 
-.PHONY: cluster cluster-delete build load secret deploy-phase1 deploy-phase2 deploy-phase3 traffic-platform deploy-phase4 gateway-access smoke smoke-traffic status validate
+.PHONY: cluster cluster-delete build load secret deploy-phase1 deploy-phase2 deploy-phase3 traffic-platform deploy-phase4 gateway-access smoke smoke-traffic status validate check-rules
+
+PROMTOOL ?= promtool
 
 cluster:
 	kind create cluster --name $(CLUSTER_NAME) --config $(CLUSTER_CONFIG)
@@ -194,6 +196,9 @@ smoke:
 
 status:
 	kubectl get pods,svc,pvc,networkpolicy -n shop -o wide
+
+check-rules:
+	python scripts/check-prometheus-rules.py --promtool "$(PROMTOOL)"
 
 validate: check-chart
 	kubectl kustomize gitops >/dev/null

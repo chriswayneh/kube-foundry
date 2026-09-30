@@ -84,7 +84,8 @@ See the [operator walkthrough](operational-proof.md). This milestone does not in
 ## Optional post-v1.0 backlog
 
 - Reviewed promotion into separate staging/production clusters
-- [x] Local SLO signals and non-paging diagnostic alert rules
+- [ ] Local reliability signals and diagnostic alert rules: implemented with evaluator tests;
+  live GitOps/dashboard acceptance and release remain pending
 - Automated encrypted off-cluster backups and data-service availability
 - SSO and trusted certificates for shared deployments
 - Canary delivery using Gateway traffic weights

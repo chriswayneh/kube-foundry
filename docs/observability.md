@@ -33,7 +33,42 @@ Grafana's generated credentials are in the `monitoring-grafana` Secret in namesp
 
 The **kube-foundry / Shop** dashboard is provisioned from `gitops/platform/monitoring/shop.json`. Its ten panels cover replicas, scrape health, request rate, p95 latency, server errors, process memory, HPA desired replicas, allowed disruptions, 5-minute API success ratio, and active local reliability alerts. Request-rate and latency panels select `/api/` traffic rather than probe traffic. Generate requests with the smoke tests; empty latency data while idle is expected. Process memory is not total container memory.
 
-`gitops/platform/monitoring/slo-rules.yaml` records the 5-minute API request rate, success ratio, and p95 latency. It also evaluates three local diagnostic alerts: unavailable API scrape targets, more than 2% API errors during meaningful traffic, and p95 API latency above 750 ms during meaningful traffic. These thresholds make degraded behavior visible in Prometheus and Grafana; they are not an SLO commitment, paging configuration, or production availability guarantee. The local installation deliberately keeps Alertmanager disabled and sends no notifications.
+## Local reliability signals (unreleased)
+
+The development branch adds two panels to the eight-panel v1.1 dashboard. Live cluster acceptance remains pending.
+`gitops/platform/monitoring/slo-rules.yaml` records the 5-minute API request rate, non-5xx response ratio,
+and p95 latency. Only recorded `/api/` responses from the `shop` namespace and `api` service are included.
+Redirects and client errors such as 404/422 do not count as server failures. The ratio divides by the actual
+positive request rate; an idle API or missing request metrics produce no ratio, displayed as
+**No traffic / no data**, rather than a fabricated success percentage.
+
+The local diagnostic alerts are:
+
+- **ShopApiTargetUnavailable:** any discovered scrape target is down, or all API targets are absent,
+  continuously for two minutes. Recovery clears the alert on the next evaluation.
+- **ShopApiErrorBudgetBurning:** more than 2% of recorded API responses are 5xx, with more than 0.1
+  requests/second, continuously for five minutes. The name is retained, but this is a fixed diagnostic
+  threshold, not a calculation against a defined SLO error budget.
+- **ShopApiLatencyHigh:** 5-minute p95 latency exceeds 750 ms with more than 0.1 requests/second,
+  continuously for five minutes.
+
+These signals cover instrumented API responses, not end-to-end availability: gateway failures and unhandled
+exceptions that bypass the API metrics middleware are not counted. No monthly SLO, paging configuration,
+or production availability guarantee is implied. Alertmanager remains disabled and sends no notifications.
+
+Run `make check-rules` with promtool 3.5.0 on PATH, or
+`python scripts/check-prometheus-rules.py --promtool /path/to/promtool`.
+CI downloads the pinned upstream binary and verifies its checksum. Tests execute the deployed expressions
+against healthy low traffic, idle/missing metrics, 4xx/5xx responses, latency, missing/failed targets,
+counter resets, recovery, and alert hold intervals. The Python suite also checks the owning Argo project's
+resource permission and rejects unhealthy or unevaluated live rules.
+
+For an existing disposable acceptance cluster, update the Argo project definitions before syncing the
+branch: `kubectl --context kind-kube-foundry-release apply -f gitops/projects.yaml`.
+The normal `make install` path already applies these definitions through `gitops-platform`.
+The added permission allows only `monitoring.coreos.com/PrometheusRule` within the platform project's
+existing destinations. Then sync the reviewed revision, run `make monitoring-check`, and inspect both new
+panels. A tagged v1.1 checkout retains its existing rules and dashboard behavior.
 
 ## Resource footprint and boundaries
 

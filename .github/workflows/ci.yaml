@@ -31,6 +31,14 @@ jobs:
           python -m unittest discover -s scripts -p 'test_*.py'
       - name: Render charts and all delivery profiles
         run: make validate
+      - name: Evaluate Prometheus rules
+        run: |
+          curl --fail --location --retry 3 --output /tmp/prometheus.tar.gz \
+            https://github.com/prometheus/prometheus/releases/download/v3.5.0/prometheus-3.5.0.linux-amd64.tar.gz
+          checksum=e811827af26d822afb09a4f28314f61b618b12cff5369835a67f674d8b46f39a
+          echo "$checksum  /tmp/prometheus.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/prometheus.tar.gz -C /tmp prometheus-3.5.0.linux-amd64/promtool
+          python scripts/check-prometheus-rules.py --promtool /tmp/prometheus-3.5.0.linux-amd64/promtool
   images:
     if: github.event_name == 'pull_request'
     needs: validate

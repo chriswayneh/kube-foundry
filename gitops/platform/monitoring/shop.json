@@ -295,6 +295,7 @@
     {
       "id": 9,
       "title": "API 5m success ratio",
+      "description": "Share of recorded API responses that are not 5xx. Idle or missing request metrics show no data.",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -310,12 +311,14 @@
         {
           "refId": "A",
           "expr": "shop:api_success_ratio:rate5m",
+          "instant": true,
           "legendFormat": "success ratio"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
+          "noValue": "No traffic / no data",
           "min": 0,
           "max": 1,
           "thresholds": {
