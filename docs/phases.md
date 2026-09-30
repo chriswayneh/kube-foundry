@@ -74,6 +74,17 @@ Phases 1-8 deliver the platform. Phase 9 closes the v1.0 release; optional enhan
 
 ## Optional post-v1.0 backlog
 
+### v1.1 operational-proof milestone
+
+- [ ] Verify immutable image promotion and a Git-revert rollback on the disposable cluster
+- [ ] Record a specific policy denial and successful remediation without weakening policy
+- [ ] Link backup checksums to source/restored row counts, hashes, and application readiness
+- [ ] Complete tests, image scans, full live verification, and release evidence
+
+See the [operator walkthrough](operational-proof.md). This milestone does not introduce separate production environments or database cutover.
+
+### Optional future work
+
 - Reviewed promotion into separate staging/production clusters
 - Alerting and service-level objectives
 - Automated encrypted off-cluster backups and data-service availability

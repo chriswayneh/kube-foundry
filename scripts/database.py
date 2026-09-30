@@ -52,7 +52,8 @@ def main():
             subprocess.run(command(args.context,
                                    'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc --no-acl'),
                            stdout=handle, check=True)
-        digest = hashlib.sha256(args.output.read_bytes()).hexdigest()
+        with args.output.open("rb") as handle:
+            digest = hashlib.file_digest(handle, "sha256").hexdigest()
         print(f"Backup complete: {args.output}; SHA256 {digest}. Contains private application data.")
     else:
         with open_archive(args.input, args.sha256) as handle:

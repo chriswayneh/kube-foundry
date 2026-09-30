@@ -33,6 +33,22 @@ class OperationalProof(unittest.TestCase):
             with evidence("unused.json", "test", "kind-kube-foundry"):
                 self.fail("Accepted original cluster")
 
+    def test_interruption_is_not_success(self):
+        with tempfile.TemporaryDirectory() as directory, patch("proof.get", return_value={"metadata": {"uid": "test"}}):
+            path = Path(directory) / "proof.json"
+            with self.assertRaises(KeyboardInterrupt):
+                with evidence(path, "test", CONTEXT):
+                    raise KeyboardInterrupt()
+            self.assertEqual(json.loads(path.read_text())["status"], "failed")
+
+    def test_cluster_connection_failure_records_failure(self):
+        with tempfile.TemporaryDirectory() as directory, patch("proof.get", side_effect=RuntimeError("offline")):
+            path = Path(directory) / "proof.json"
+            with self.assertRaises(RuntimeError):
+                with evidence(path, "test", CONTEXT):
+                    self.fail("Continued without cluster identity")
+            self.assertEqual(json.loads(path.read_text())["status"], "failed")
+
     def test_checksum_mismatch_and_rewind(self):
         import hashlib
         with tempfile.TemporaryDirectory() as directory:
