@@ -9,7 +9,7 @@ import time
 
 import yaml
 
-from proof import CONTEXT, evidence, get, kubectl, require
+from proof import CONTEXT, evidence, get, ready, require
 
 
 def revision(value):
@@ -74,12 +74,8 @@ def main():
             require(time.monotonic() < deadline, "Exact revision/digest rollout did not converge within 300s")
             time.sleep(5)
         # Execute in the selected cluster, not a possibly unrelated host port-forward.
-        result = kubectl(args.context, "-n", "shop", "exec", "deployment/api", "--", "python", "-c",
-                         "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/readyz',"
-                         "timeout=10); raise SystemExit(0 if r.status == 200 else 1)")
-        result.check_returncode()
         report.update(applications={name: "Synced/Healthy at " + args.revision for name in apps},
-                      rollout="all desired replicas updated, ready and available", readiness_http=200)
+                      rollout="all desired replicas updated, ready and available", readiness_http=ready(args.context))
     print(json.dumps({"status": "passed", "evidence": str(args.evidence)}))
 
 

@@ -9,7 +9,7 @@ import sys
 import uuid
 
 from database import command
-from proof import CONTEXT, evidence, require
+from proof import CONTEXT, evidence, ready, require
 
 
 def summarize(rows):
@@ -43,6 +43,7 @@ def main():
     report_path = args.evidence or output.with_suffix(".json")
     with evidence(report_path, "database-restore", args.context) as report:
         report.update(archive=str(output), destination_database=restored)
+        report["readiness_before"] = ready(args.context)
         before = fingerprints()
         report["source_before"] = before
         tool = str(Path(__file__).with_name("database.py"))
@@ -56,6 +57,7 @@ def main():
         report["source_after"] = fingerprints()
         report["restored"] = fingerprints(restored)
         verify_tables(before, report["source_after"], report["restored"])
+        report["readiness_after"] = ready(args.context)
         report["application_cutover"] = False
     print(f"PASS: source unchanged and all restored rows match. Evidence: {report_path}", flush=True)
     print("Private dump and separate restore database retained; no application cutover performed.", flush=True)

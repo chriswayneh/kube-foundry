@@ -29,6 +29,14 @@ def require(condition, message):
         raise RuntimeError(message)
 
 
+def ready(context):
+    result = kubectl(context, "-n", "shop", "exec", "deployment/api", "--", "python", "-c",
+                     "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/readyz',"
+                     "timeout=10); raise SystemExit(0 if r.status == 200 else 1)")
+    result.check_returncode()
+    return 200
+
+
 @contextmanager
 def evidence(path, exercise, context):
     """Reserve a unique report before work. Interrupted reports never say passed."""

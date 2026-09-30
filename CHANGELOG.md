@@ -7,6 +7,7 @@
 - Exclusive timestamped JSON evidence with cluster identity and explicit pass/fail status.
 - Optional trusted-checksum verification before restore, plus source/restored row counts and hashes.
 - Operator guidance separating local proof from production promotion and data-cutover guarantees.
+- Refresh the web runtime's libexpat package to address the high-severity finding detected during release validation.
 
 ## v1.0.0 - 2026-09-19
 
