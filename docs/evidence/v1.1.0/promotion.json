@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "exercise": "gitops-revision",
+  "context": "kind-kube-foundry-release",
+  "started_at": "2026-09-30T03:36:57.796050+00:00",
+  "status": "passed",
+  "cluster_uid": "850d3f2e-15dd-4f3f-a56e-4fa03ff33b12",
+  "revision": "14477d1341fb6bb920f6d7ef5c3919467f1617b5",
+  "expected_images": {
+    "api": "ghcr.io/chriswayneh/kube-foundry-api@sha256:2f8bcdae39588d579fa04d2e13c153b76338ab7b5522da7bfc52806e1a890ca9",
+    "worker": "ghcr.io/chriswayneh/kube-foundry-worker@sha256:69fbe81882fdd7177eabcd887355464728a3fd4dba549f1afb2eeea30aa3260c",
+    "web": "ghcr.io/chriswayneh/kube-foundry-web@sha256:3f00a3958f19f54f58b7067d6dddd2f37326d0d8077bf9c2570daa86c60c4cf5"
+  },
+  "observed_revisions": {
+    "kube-foundry": [
+      "14477d1341fb6bb920f6d7ef5c3919467f1617b5"
+    ],
+    "platform": [
+      "14477d1341fb6bb920f6d7ef5c3919467f1617b5",
+      "14477d1341fb6bb920f6d7ef5c3919467f1617b5",
+      "14477d1341fb6bb920f6d7ef5c3919467f1617b5"
+    ],
+    "shop-dev": [
+      "14477d1341fb6bb920f6d7ef5c3919467f1617b5"
+    ]
+  },
+  "applications": {
+    "kube-foundry": "Synced/Healthy at 14477d1341fb6bb920f6d7ef5c3919467f1617b5",
+    "platform": "Synced/Healthy at 14477d1341fb6bb920f6d7ef5c3919467f1617b5",
+    "shop-dev": "Synced/Healthy at 14477d1341fb6bb920f6d7ef5c3919467f1617b5"
+  },
+  "rollout": "all desired replicas updated, ready and available",
+  "readiness_http": 200,
+  "finished_at": "2026-09-30T03:37:00.561153+00:00"
+}

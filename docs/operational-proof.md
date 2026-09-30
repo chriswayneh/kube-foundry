@@ -21,10 +21,15 @@ Reports use exclusive creation: choose a new `PROOF_DIR` each run. Only `status:
 
 The retained `codex/v1.1-promotion-proof` branch is an **exercise history, not a deployment branch for main**. Promotion changes only three image digests and their source-commit comment, using image sets previously published by the v1.0 workflow. No schema, controller, credential, or policy change is included. Do not merge this historical branch into main.
 
+Historical fixtures may contain packages now flagged by vulnerability scanners. Replay only on the disposable, loopback-accessed cluster. Rollback success proves state restoration, not security clearance. The shipped v1.1 image set must independently pass the current scan gate.
+
 Fetch the proof branch and assign the full baseline, promotion, and rollback SHAs from the acceptance record to the variables below. The proof checker requires immutable full commit SHAs, not branch names.
 
 ```bash
 git fetch origin codex/v1.1-promotion-proof
+BASELINE=54384f6fa5074ad19cf7b4ff0dec26bd52b22343
+PROMOTION=14477d1341fb6bb920f6d7ef5c3919467f1617b5
+ROLLBACK=091685f5c3bf949a6a32b62d3554de2c23e26d57
 python scripts/bootstrap-gitops.py --revision "$BASELINE"
 make operational-promotion GITOPS_REVISION="$BASELINE" PROOF_DIR=backups/proof-baseline
 make smoke-traffic
@@ -80,4 +85,18 @@ This proves logical row recovery into a separate database and continued operatio
 
 ## Acceptance record
 
-Live acceptance is pending. Release publication requires baseline, promotion, Git revert, policy-remediation, recovery evidence, and the full verification suite. Existing [v1.0 screenshots](release.md#screenshots) are dated illustrations of unchanged interfaces, not evidence of v1.1 execution.
+Executed on 2026-09-29 (America/Chicago; JSON timestamps use UTC) on a freshly created three-node release cluster with independent credentials. The original stopped development cluster and other projects' containers were not changed. The checker implementation was exercised at `a323016`; subsequent acceptance documentation does not change those checks.
+
+| Exercise | Evidence and outcome |
+| --- | --- |
+| Clean v1.0 baseline installation | Full `make verify` passed: GitOps, admission/RBAC/token boundaries, metrics/dashboard, eviction dry-runs, HTTPS items/jobs |
+| Baseline `54384f6` | [Exact revision and digest proof](evidence/v1.1.0/baseline.json); HTTPS smoke passed |
+| Promotion `14477d1` | [Exact revision and digest proof](evidence/v1.1.0/promotion.json); HTTPS smoke passed |
+| Git revert `091685f` | [Exact revision and digest proof](evidence/v1.1.0/rollback.json); image configuration equals baseline; HTTPS smoke passed |
+| Missing CPU limit and remediation | [Actual policy denial and corrected admission](evidence/v1.1.0/policy.json); no persisted test workload |
+| Database recovery | [Archive checksum, counts, hashes, and readiness](evidence/v1.1.0/recovery.json); all four items and four jobs matched; source unchanged |
+| Incorrect checksum | Rejected before database creation; SQL inspection confirmed `restore_checksum_rejection` did not exist |
+| Post-recovery application | HTTPS item creation and job completion passed against the original database |
+| Automated checks | 20 unit tests, Python/YAML lint, chart/profile rendering, and all three image build/scan jobs passed in [CI](https://github.com/chriswayneh/kube-foundry/actions/runs/36664828429) |
+
+All five JSON reports have the same cluster UID. Dumps and credentials are private and excluded from Git; published reports contain only synthetic-test counts/hashes and operational metadata. The historical promotion/revert branch is retained so the full commit chain can be inspected and replayed. Existing [v1.0 screenshots](release.md#screenshots) remain dated illustrations of unchanged interfaces, not evidence of v1.1 execution.

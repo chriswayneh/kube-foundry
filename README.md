@@ -2,9 +2,9 @@
 
 A local Kubernetes reference platform for deploying containerized applications, validating platform changes, and testing recovery without cloud infrastructure.
 
-**v1.0.0 is released.** It packages a three-node kind cluster, a small application stack, enforced workload policies, observability, and GitOps delivery. The sample application creates and lists items and processes background jobs. Its purpose is to exercise the platform, not to provide an authenticated commerce service.
+**v1.1.0** adds verified Git-backed promotion and rollback, policy-remediation proof, and checksum-linked recovery evidence to the three-node kind platform. The sample application creates and lists items and processes background jobs. Its purpose is to exercise the platform, not to provide an authenticated commerce service.
 
-[Release v1.0.0](https://github.com/chriswayneh/kube-foundry/releases/tag/v1.0.0) | [Quick start](#run-v10) | [Verification results](docs/release.md#acceptance-record) | [Completed roadmap](docs/phases.md)
+[Release v1.1.0](https://github.com/chriswayneh/kube-foundry/releases/tag/v1.1.0) | [Quick start](#run-v11) | [Operational proof](docs/operational-proof.md) | [Roadmap](docs/phases.md)
 
 ## Architecture
 
@@ -29,20 +29,20 @@ flowchart LR
 
 Helm bootstraps the platform controllers. Argo CD reconciles the shop application and platform configuration. Cilium enforces default-deny application networking. [Architecture and ownership](docs/architecture.md).
 
-## Run v1.0
+## Run v1.1
 
 Prerequisites: Docker with Linux containers, kind **0.33.0**, kubectl **1.37.0**, Helm **3.22.0**, GNU Make, Python **3.13+**, Git, and curl. Use Bash, WSL, or Git Bash for Make targets. Allow approximately **16 GB of Docker memory** and enough disk space for node images, controller images, and local volumes; this is not a lightweight single-container demo. Internet access is required for GitHub, GHCR, and chart/image registries.
 
 ```bash
-git clone --branch v1.0.0 https://github.com/chriswayneh/kube-foundry.git
+git clone --branch v1.1.0 https://github.com/chriswayneh/kube-foundry.git
 cd kube-foundry
 make init-env
 make cluster
-make install GITOPS_REVISION=v1.0.0
+make install GITOPS_REVISION=v1.1.0
 make gateway-access
 ```
 
-The installer verifies GitOps health, admission/RBAC controls, monitoring, and an HTTPS application smoke test. It uses published image digests; no local image build or registry login is required. The release revision is applied to both the root and child Applications, so installing v1.0 does not silently follow future main-branch changes.
+The installer verifies GitOps health, admission/RBAC controls, monitoring, and an HTTPS application smoke test. It uses published image digests; no local image build or registry login is required. The release revision is applied to both the root and child Applications, so installing a release does not silently follow future main-branch changes.
 
 Open **http://shop.localhost:8080** or **https://shop.localhost:8443** while the port-forward runs. HTTPS uses a self-signed local certificate. The smoke test verifies that certificate explicitly. See [host access](docs/traffic.md) and [release operations](docs/release.md) for context selection, existing installations, upgrades, and teardown.
 
@@ -72,7 +72,7 @@ This is not a complete zero-trust architecture: application endpoints have no us
 
 ## Screenshots
 
-Actual development-cluster captures, not mockups. [Capture details](docs/release.md#screenshots).
+Actual development-cluster captures from v1.0 on 2026-09-19, not mockups. The interfaces are unchanged; v1.1 operational evidence is linked in the [walkthrough](docs/operational-proof.md#acceptance-record). [Capture details](docs/release.md#screenshots).
 
 ![Argo CD showing three healthy, synced applications](docs/images/argocd.png)
 
@@ -100,7 +100,7 @@ Production would require reviewed promotions, trusted TLS and identity, stronger
 
 ## Project status
 
-The v1.0 delivery phases are complete. Future enhancements are separated into the [optional backlog](docs/phases.md#optional-post-v10-backlog). [Design decisions](docs/decisions.md), [security model](docs/security.md), and [release notes](docs/releases/v1.0.0.md) document the tradeoffs.
+The v1.0 platform and v1.1 operational-proof milestones are complete. Future enhancements are separated into the [optional backlog](docs/phases.md#optional-post-v10-backlog). [Design decisions](docs/decisions.md), [security model](docs/security.md), [changelog](CHANGELOG.md), and [release notes](docs/releases/v1.1.0.md) document the tradeoffs.
 
 ## License
 

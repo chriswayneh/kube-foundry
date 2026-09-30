@@ -1,4 +1,6 @@
-# v1.0 release and operations
+# Release and operations
+
+v1.1 retains the v1.0 installation and support contract. Its new [operational-proof walkthrough](operational-proof.md) records Git promotion/revert, policy remediation, and structured recovery evidence. The acceptance record below remains the historical v1.0 record.
 
 ## Release contract
 
@@ -14,7 +16,7 @@ From the tagged checkout:
 make init-env
 make cluster
 kubectl config current-context
-make install GITOPS_REVISION=v1.0.0
+make install GITOPS_REVISION=v1.1.0
 make gateway-access
 ```
 
@@ -37,7 +39,7 @@ export KUBECONFIG="$PWD/.tools/release-kubeconfig"
 # export KUBECONFIG='C:/dev/kube-foundry/.tools/release-kubeconfig'
 make init-env ENV_FILE=.tools/release.env
 make cluster CLUSTER_NAME=kube-foundry-release CLUSTER_CONFIG=clusters/kind/verification.yaml
-make install ENV_FILE=.tools/release.env GITOPS_REVISION=v1.0.0
+make install ENV_FILE=.tools/release.env GITOPS_REVISION=v1.1.0
 python scripts/check-recovery.py --context kind-kube-foundry-release
 python scripts/check-backup.py --context kind-kube-foundry-release
 make verify
