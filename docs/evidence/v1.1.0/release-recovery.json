@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "exercise": "database-restore",
+  "context": "kind-kube-foundry-release",
+  "started_at": "2026-09-30T03:44:32.591876+00:00",
+  "status": "passed",
+  "cluster_uid": "850d3f2e-15dd-4f3f-a56e-4fa03ff33b12",
+  "archive": "backups\\acceptance-20260930034432_b58ffba8.dump",
+  "destination_database": "restore_acceptance_20260930034432_b58ffba8",
+  "readiness_before": 200,
+  "source_before": {
+    "items": {
+      "rows": 7,
+      "sha256": "32cd2bff60cd6fe76dcd19d0c291a18b2abfeb0b1f9276cf660dc8c17216ce2c"
+    },
+    "jobs": {
+      "rows": 7,
+      "sha256": "665edbc02f6856ff84559546e54f5e418d49edac1fe17aa073b933770856a7ab"
+    }
+  },
+  "archive_sha256": "e3368fd94cbe8a65c2d969e7cde9d8327483c76bd5b9f7068703add85d4998d3",
+  "source_after": {
+    "items": {
+      "rows": 7,
+      "sha256": "32cd2bff60cd6fe76dcd19d0c291a18b2abfeb0b1f9276cf660dc8c17216ce2c"
+    },
+    "jobs": {
+      "rows": 7,
+      "sha256": "665edbc02f6856ff84559546e54f5e418d49edac1fe17aa073b933770856a7ab"
+    }
+  },
+  "restored": {
+    "items": {
+      "rows": 7,
+      "sha256": "32cd2bff60cd6fe76dcd19d0c291a18b2abfeb0b1f9276cf660dc8c17216ce2c"
+    },
+    "jobs": {
+      "rows": 7,
+      "sha256": "665edbc02f6856ff84559546e54f5e418d49edac1fe17aa073b933770856a7ab"
+    }
+  },
+  "readiness_after": 200,
+  "application_cutover": false,
+  "finished_at": "2026-09-30T03:44:38.075182+00:00"
+}
