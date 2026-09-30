@@ -27,6 +27,8 @@ After verification, a real cutover would require a maintenance window, stopping 
 
 ## Acceptance drill
 
+For the v1.1 checksum-verified drill and structured evidence, follow [operational proof](operational-proof.md#3-recovery-evidence-end-to-end). Restore accepts `--sha256 <trusted-checksum>` to reject a mismatched archive before creating its destination database. Existing restore commands remain compatible, but omit this integrity check unless a checksum is supplied.
+
 Run only on the disposable cluster after the smoke test has created at least one item and completed job:
 
 ```bash
