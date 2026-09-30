@@ -59,6 +59,9 @@ Open **http://shop.localhost:8080** or **https://shop.localhost:8443** while the
 - High/critical image vulnerability gates and immutable GHCR digest delivery
 - Backup/restore tooling and repeatable recovery exercises
 
+On this development branch, [local reliability signals](docs/observability.md#local-reliability-signals-unreleased)
+add Prometheus rules and two dashboard panels. They are unreleased and await live cluster acceptance.
+
 ## Zero-trust principles and trust boundaries
 
 The platform applies zero-trust principles to application networking and workload permissions. Running inside the cluster does not by itself grant access to another workload or the Kubernetes API.

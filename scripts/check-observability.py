@@ -36,6 +36,23 @@ def prometheus(path):
                    "/api/v1/namespaces/monitoring/services/http:monitoring-prometheus:9090/proxy" + path)
 
 
+def verify_rules(payload):
+    assert payload.get("status") == "success", "Prometheus rules query failed"
+    groups = payload["data"]["groups"]
+    group = next((entry for entry in groups if entry["name"] == "kube-foundry-shop-slo"), None)
+    assert group is not None, "Shop SLO rule group not loaded"
+    rules = {rule.get("name"): rule for rule in group["rules"]}
+    expected = {"shop:api_requests:rate5m", "shop:api_success_ratio:rate5m",
+                "shop:api_p95_latency_seconds:rate5m", "ShopApiTargetUnavailable",
+                "ShopApiErrorBudgetBurning", "ShopApiLatencyHigh"}
+    assert expected <= rules.keys(), "Shop SLO rules missing"
+    for name in expected:
+        rule = rules[name]
+        assert rule.get("health") == "ok" and not rule.get("lastError"), f"Rule evaluation failed: {name}"
+        evaluated = rule.get("lastEvaluation")
+        assert evaluated and not evaluated.startswith("0001"), f"Rule not evaluated: {name}"
+
+
 def main():
     def targets_ready():
         targets = prometheus("/api/v1/targets")["data"]["activeTargets"]
@@ -49,6 +66,10 @@ def main():
             result = prometheus("/api/v1/query?" + urllib.parse.urlencode({"query": query}))
             assert result["status"] == "success" and result["data"]["result"], "Missing metric series"
     eventually(series_ready)
+
+    def rules_ready():
+        verify_rules(prometheus("/api/v1/rules"))
+    eventually(rules_ready)
 
     def hpa_ready():
         hpa = kubectl("get", "hpa", "api", "-n", "shop", "-o", "json")
@@ -82,7 +103,9 @@ def main():
             def dashboard_ready():
                 assert grafana("/api/health")["database"] == "ok"
                 dashboard = grafana("/api/dashboards/uid/kube-foundry-shop")["dashboard"]
-                assert len(dashboard["panels"]) == 8, "Dashboard panels missing"
+                assert len(dashboard["panels"]) == 10, "Dashboard panels missing"
+                assert {"API 5m success ratio", "Active local reliability alerts"} <= {
+                    panel["title"] for panel in dashboard["panels"]}
                 assert grafana("/api/datasources/uid/prometheus")["type"] == "prometheus"
             eventually(dashboard_ready)
         finally:
