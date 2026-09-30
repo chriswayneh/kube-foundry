@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "exercise": "policy-remediation",
+  "context": "kind-kube-foundry-release",
+  "started_at": "2026-09-30T03:34:03.668732+00:00",
+  "status": "passed",
+  "cluster_uid": "850d3f2e-15dd-4f3f-a56e-4fa03ff33b12",
+  "policy": "shop-workloads",
+  "rule": "require-resources",
+  "denial": "Error from server: error when creating \"STDIN\": admission webhook \"nvpol.validate.kyverno.svc-fail\" denied the request: Policy shop-workloads failed: require-resources: regular and init containers need CPU and memory requests and limits.",
+  "rejected_field": "spec.template.spec.containers[0].resources.limits.cpu",
+  "remediation": "restore the CPU limit from the compliant API workload",
+  "denied": true,
+  "corrected_admission": true,
+  "dry_run": true,
+  "finished_at": "2026-09-30T03:34:04.123187+00:00"
+}

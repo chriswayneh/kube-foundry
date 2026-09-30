@@ -18,13 +18,19 @@ def command(context, script, *args, stdin=False):
             "postgres-0", "--", "sh", "-c", script, "--", *args]
 
 
-def open_archive(path):
+def open_archive(path, expected_sha256=None):
     # Keep the inherited OS file offset aligned after header validation.
     handle = path.open("rb", buffering=0)
     if handle.read(5) != b"PGDMP":
         handle.close()
         raise ValueError("Not a PostgreSQL custom-format archive")
     handle.seek(0)
+    if expected_sha256 is not None:
+        digest = hashlib.file_digest(handle, "sha256").hexdigest()
+        if digest != expected_sha256:
+            handle.close()
+            raise ValueError("Archive checksum mismatch; destination database was not created")
+        handle.seek(0)
     return handle
 
 
@@ -37,6 +43,7 @@ def main():
     restore = commands.add_parser("restore")
     restore.add_argument("--input", type=Path, required=True)
     restore.add_argument("--database", type=restore_name, required=True)
+    restore.add_argument("--sha256", help="Verify against a trusted backup checksum before creating the database")
     args = parser.parse_args()
     if args.operation == "backup":
         args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -45,10 +52,11 @@ def main():
             subprocess.run(command(args.context,
                                    'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc --no-acl'),
                            stdout=handle, check=True)
-        digest = hashlib.sha256(args.output.read_bytes()).hexdigest()
+        with args.output.open("rb") as handle:
+            digest = hashlib.file_digest(handle, "sha256").hexdigest()
         print(f"Backup complete: {args.output}; SHA256 {digest}. Contains private application data.")
     else:
-        with open_archive(args.input) as handle:
+        with open_archive(args.input, args.sha256) as handle:
             subprocess.run(command(args.context, 'exec createdb -U "$POSTGRES_USER" "$1"', args.database),
                            check=True)
             subprocess.run(command(args.context,

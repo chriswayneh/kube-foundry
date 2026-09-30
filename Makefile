@@ -156,7 +156,20 @@ deploy-phase8: gitops-platform
 	python scripts/bootstrap-gitops.py --revision "$(GITOPS_REVISION)"
 	$(MAKE) gitops-check
 
-.PHONY: init-env install verify
+.PHONY: init-env install verify operational-policy operational-backup operational-promotion
+
+# Explicit context and exclusive report paths keep exercises separate from development.
+PROOF_CONTEXT ?= kind-kube-foundry-release
+PROOF_DIR ?= backups/operational-proof
+
+operational-policy:
+	python scripts/check-policy-remediation.py --context "$(PROOF_CONTEXT)" --evidence "$(PROOF_DIR)/policy.json"
+
+operational-backup:
+	python scripts/check-backup.py --context "$(PROOF_CONTEXT)" --evidence "$(PROOF_DIR)/backup.json"
+
+operational-promotion:
+	python scripts/check-promotion.py --context "$(PROOF_CONTEXT)" --revision "$(GITOPS_REVISION)" --evidence "$(PROOF_DIR)/revision.json"
 
 init-env:
 	python scripts/init-env.py --output "$(ENV_FILE)"
