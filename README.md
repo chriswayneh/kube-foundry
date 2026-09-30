@@ -55,6 +55,7 @@ Open **http://shop.localhost:8080** or **https://shop.localhost:8443** while the
 - Envoy Gateway routing and cert-manager local TLS
 - Helm application packaging and dev/staging/prod configuration examples
 - Prometheus, Grafana, CPU autoscaling, and voluntary disruption budgets
+- Prometheus recording rules and local diagnostic alert visibility for API reliability signals
 - Argo CD reconciliation and SHA-pinned GitHub Actions
 - High/critical image vulnerability gates and immutable GHCR digest delivery
 - Backup/restore tooling and repeatable recovery exercises

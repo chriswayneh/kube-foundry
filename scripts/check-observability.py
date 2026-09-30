@@ -50,6 +50,15 @@ def main():
             assert result["status"] == "success" and result["data"]["result"], "Missing metric series"
     eventually(series_ready)
 
+    def rules_ready():
+        groups = prometheus("/api/v1/rules")["data"]["groups"]
+        group = next((entry for entry in groups if entry["name"] == "kube-foundry-shop-slo"), None)
+        assert group is not None, "Shop SLO rule group not loaded"
+        names = {rule.get("name") for rule in group["rules"]}
+        assert {"shop:api_requests:rate5m", "shop:api_success_ratio:rate5m",
+                "ShopApiTargetUnavailable", "ShopApiErrorBudgetBurning", "ShopApiLatencyHigh"} <= names
+    eventually(rules_ready)
+
     def hpa_ready():
         hpa = kubectl("get", "hpa", "api", "-n", "shop", "-o", "json")
         assert any(c["type"] == "ScalingActive" and c["status"] == "True"
@@ -82,7 +91,9 @@ def main():
             def dashboard_ready():
                 assert grafana("/api/health")["database"] == "ok"
                 dashboard = grafana("/api/dashboards/uid/kube-foundry-shop")["dashboard"]
-                assert len(dashboard["panels"]) == 8, "Dashboard panels missing"
+                assert len(dashboard["panels"]) == 10, "Dashboard panels missing"
+                assert {"API 5m success ratio", "Active local reliability alerts"} <= {
+                    panel["title"] for panel in dashboard["panels"]}
                 assert grafana("/api/datasources/uid/prometheus")["type"] == "prometheus"
             eventually(dashboard_ready)
         finally:

@@ -38,7 +38,7 @@ Services provide stable discovery over changing Pods. The `postgres` headless Se
 
 ## Health semantics
 
-Prometheus discovers API metrics through a ServiceMonitor and an explicit network-policy allowance. Grafana provisions a dashboard from Git. Metrics Server supplies CPU utilization to the API HPA; phase 7 overlays omit API replicas so deployment reconciliation does not compete with autoscaling. Five PodDisruptionBudgets govern voluntary evictions. See [observability and scaling](observability.md) for access and availability limits.
+Prometheus discovers API metrics through a ServiceMonitor and an explicit network-policy allowance. PrometheusRule recording rules calculate local API reliability signals and diagnostic alert states; Alertmanager remains disabled, so these rules do not page anyone. Grafana provisions a dashboard from Git. Metrics Server supplies CPU utilization to the API HPA; phase 7 overlays omit API replicas so deployment reconciliation does not compete with autoscaling. Five PodDisruptionBudgets govern voluntary evictions. See [observability and scaling](observability.md) for access and availability limits.
 
 - `/healthz` proves the API process can serve HTTP; Kubernetes uses it for startup and liveness.
 - `/readyz` checks required configuration and, from phase 3 onward, executes PostgreSQL and Redis pings. Any failed dependency returns HTTP 503, removing the Pod from Service endpoints.

@@ -1,0 +1,56 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: shop-slo
+  namespace: monitoring
+  labels:
+    release: monitoring
+    app.kubernetes.io/part-of: kube-foundry
+spec:
+  groups:
+    - name: kube-foundry-shop-slo
+      rules:
+        - record: shop:api_requests:rate5m
+          expr: sum(rate(http_requests_total{namespace="shop",service="api",path=~"/api/.*"}[5m])) or vector(0)
+        - record: shop:api_success_ratio:rate5m
+          expr: >-
+            (sum(rate(http_requests_total{
+            namespace="shop", service="api", path=~"/api/.*", status=~"2.."
+            }[5m])) or vector(0))
+            / clamp_min(sum(rate(http_requests_total{
+            namespace="shop", service="api", path=~"/api/.*"
+            }[5m])) or vector(0), 1)
+        - record: shop:api_p95_latency_seconds:rate5m
+          expr: >-
+            histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{
+            namespace="shop", service="api", path=~"/api/.*"
+            }[5m])))
+        - alert: ShopApiTargetUnavailable
+          expr: min(up{namespace="shop",service="api"}) < 1
+          for: 2m
+          labels:
+            severity: warning
+            scope: local
+          annotations:
+            summary: Shop API scrape target is unavailable
+            description: At least one discovered Shop API metrics target has been down for two minutes.
+        - alert: ShopApiErrorBudgetBurning
+          expr: (shop:api_requests:rate5m > 0.1) and ((1 - shop:api_success_ratio:rate5m) > 0.02)
+          for: 5m
+          labels:
+            severity: warning
+            scope: local
+          annotations:
+            summary: Shop API 5xx ratio exceeds the local diagnostic threshold
+            description: More than 2% of observed API requests have failed over five minutes while traffic is present.
+        - alert: ShopApiLatencyHigh
+          expr: (shop:api_requests:rate5m > 0.1) and (shop:api_p95_latency_seconds:rate5m > 0.75)
+          for: 5m
+          labels:
+            severity: warning
+            scope: local
+          annotations:
+            summary: Shop API p95 latency exceeds the local diagnostic threshold
+            description: >-
+              Observed API p95 latency has exceeded 750 milliseconds for five minutes while traffic is present.

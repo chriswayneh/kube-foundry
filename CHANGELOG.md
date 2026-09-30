@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add local 5-minute API reliability signals and Prometheus diagnostic alerts without introducing paging or a production SLO commitment.
+
 ## v1.1.0 - 2026-09-29
 
 - Exact Git-revision and image-digest rollout verification for promotion and Git revert exercises.

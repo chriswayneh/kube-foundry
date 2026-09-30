@@ -84,7 +84,7 @@ See the [operator walkthrough](operational-proof.md). This milestone does not in
 ## Optional post-v1.0 backlog
 
 - Reviewed promotion into separate staging/production clusters
-- Alerting and service-level objectives
+- [x] Local SLO signals and non-paging diagnostic alert rules
 - Automated encrypted off-cluster backups and data-service availability
 - SSO and trusted certificates for shared deployments
 - Canary delivery using Gateway traffic weights
