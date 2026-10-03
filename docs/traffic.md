@@ -46,7 +46,7 @@ The namespaced `local-selfsigned` Issuer creates a 90-day certificate for `shop.
 
 `make smoke-traffic` exports only the public certificate to a temporary directory and uses `curl --cacert` to verify both trust and hostname. It does not bypass verification with `-k`. The temporary file and port-forward are removed on exit. The test creates an item and a job in the local development database.
 
-The earlier kind host mappings for ports 80/443 are not used by this access method. The port-forward avoids cluster recreation and works on the existing Docker Desktop cluster. Restart it after an Envoy Pod replacement.
+The default kind config still publishes host ports 80 and 443 on all interfaces because `listenAddress` is unset. This access method does not use those mappings: the Gateway Service is ClusterIP, and the port-forward is loopback-only. The port-forward avoids cluster recreation and works on the existing Docker Desktop cluster. Restart it after an Envoy Pod replacement.
 
 ## Verification and troubleshooting
 

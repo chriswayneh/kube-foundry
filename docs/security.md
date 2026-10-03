@@ -2,7 +2,15 @@
 
 ## Trust boundaries and assets
 
-The public Git repository and built images are untrusted inputs until reviewed. The local workstation, Docker daemon, and kind control plane are trusted for development. Data and credentials inside `shop` are protected assets; Envoy exposes the web frontend and API to local clients.
+The public Git repository and built images are untrusted inputs until someone reviews them. Nothing in this repository records an independent security review. The local workstation, Docker daemon, and kind control plane are trusted for development. Data and credentials inside `shop` are protected assets relative to other application Pods; Envoy exposes the web frontend and `/api` to whoever can reach the port-forward.
+
+## Not in place
+
+- No application authentication or authorization. The API process serves `/api/*`, `/metrics`, `/docs`, and `/openapi.json` without credentials. The Gateway forwards only the `/api` prefix.
+- Gateway TLS is a self-signed certificate for a local name. HTTP is not redirected to HTTPS. PostgreSQL and Redis manifests do not configure TLS.
+- NetworkPolicy and restricted Pod Security apply to `shop` only. Platform namespaces are not default-deny.
+- `clusters/kind/cluster.yaml` publishes host ports 80 and 443 without `listenAddress`. kind's default is all interfaces. The application is not bound to those ports; supported access is a loopback port-forward. The verification cluster config does not publish them.
+- Published acceptance JSON is an operator exercise on one local cluster.
 
 ## Implemented controls
 
@@ -19,7 +27,7 @@ The public Git repository and built images are untrusted inputs until reviewed. 
 - A dummy SOPS/age example demonstrates encryption without publishing or changing application credentials.
 - Envoy proxy Pods are allowed to reach only the API and web workload ports in `shop`. Data-store access remains limited to the API and worker.
 - The web container runs as UID/GID 101 with a read-only root filesystem, dropped capabilities, and writable `/tmp`.
-- Host access uses a loopback-only port-forward. TLS uses a development self-signed certificate; no private keys are committed or installed into the host trust store.
+- The supported host path is a loopback port-forward. That does not remove the unused all-interfaces kind port publish described above. Gateway TLS uses a development self-signed certificate; no private keys are committed or installed into the host trust store.
 
 Live verification on 2026-09-17 confirmed the API and worker could reach both stores while an unlabeled Pod in `shop` timed out connecting to PostgreSQL port 5432 under the same policies.
 
