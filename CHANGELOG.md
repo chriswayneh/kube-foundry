@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- State the live limits in the README: no application authentication, `shop`-only default-deny, unused all-interfaces kind host ports 80/443, no TLS on PostgreSQL or Redis, and operator acceptance records rather than an independent review.
+
 ## v1.1.0 - 2026-09-29
 
 - Exact Git-revision and image-digest rollout verification for promotion and Git revert exercises.
