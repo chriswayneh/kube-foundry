@@ -2,14 +2,14 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../phase7/dev
-# Source commit: 13fff5e0a56a440435d7a59a814455e78165ca2d
+# Source commit: efe02fae7aaedb0240577e0de26e960d98822b64
 images:
   - name: kube-foundry-api
     newName: ghcr.io/chriswayneh/kube-foundry-api
-    digest: sha256:968b131dcf0f58103d4b65a813212ef7635cde3a0a1e2ad3bfb1d296aa0beae2
+    digest: sha256:469be73744535fcddb55c2e531919a87352ae2038a56e26dd42d315a95cff8d3
   - name: kube-foundry-worker
     newName: ghcr.io/chriswayneh/kube-foundry-worker
-    digest: sha256:822ebc25d5d125ceb81875212cd7cc5f9f5613b4e26914ee6d940e7b552ae7cd
+    digest: sha256:4685ef7a7e226445409167211fb9db5b1414a81ff52baa962ba1a8af8d097494
   - name: kube-foundry-web
     newName: ghcr.io/chriswayneh/kube-foundry-web
-    digest: sha256:c8393b44991ff30265d7573fb80da313537ef3e629b00f81c9002ec929c6b44a
+    digest: sha256:3f764323cc20dccb734d16d0b99c523754a2e42d6c2423883d21a5c06f1ff545
