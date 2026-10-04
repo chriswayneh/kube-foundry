@@ -70,6 +70,10 @@ Open **http://shop.localhost:8080** or **https://shop.localhost:8443** while the
 - High/critical image vulnerability gates and immutable GHCR digest delivery
 - Backup/restore tooling and repeatable recovery exercises
 
+On this development branch, [local reliability signals](docs/observability.md#local-reliability-signals-unreleased)
+add Prometheus rules and two dashboard panels. They are unreleased; local acceptance and
+resource requirements are recorded in the observability guide.
+
 ## Zero-trust principles and trust boundaries
 
 The platform applies zero-trust principles to application networking and workload permissions. Running inside the cluster does not by itself grant access to another workload or the Kubernetes API.
@@ -83,7 +87,7 @@ This is not a complete zero-trust architecture: application endpoints have no us
 
 ## Screenshots
 
-Actual development-cluster captures from v1.0 on 2026-09-19, not mockups. The interfaces are unchanged; v1.1 operational evidence is linked in the [walkthrough](docs/operational-proof.md#acceptance-record). [Capture details](docs/release.md#screenshots).
+Actual development-cluster captures from v1.0 on 2026-09-19, not mockups. v1.1 operational evidence is linked in the [walkthrough](docs/operational-proof.md#acceptance-record). [Capture details](docs/release.md#screenshots). The unreleased reliability panels have separate [local acceptance captures](docs/observability.md#verification-record).
 
 ![Argo CD showing three healthy, synced applications](docs/images/argocd.png)
 

@@ -25,7 +25,7 @@ def eventually(check, timeout=150):
     while True:
         try:
             return check()
-        except (AssertionError, RuntimeError, urllib.error.URLError):
+        except (AssertionError, RuntimeError, TimeoutError, urllib.error.URLError):
             if time.monotonic() >= deadline:
                 raise
             time.sleep(3)
@@ -34,6 +34,29 @@ def eventually(check, timeout=150):
 def prometheus(path):
     return kubectl("get", "--raw",
                    "/api/v1/namespaces/monitoring/services/http:monitoring-prometheus:9090/proxy" + path)
+
+
+def verify_rules(payload):
+    assert payload.get("status") == "success", "Prometheus rules query failed"
+    groups = payload["data"]["groups"]
+    group = next((entry for entry in groups if entry["name"] == "kube-foundry-shop-slo"), None)
+    assert group is not None, "Shop SLO rule group not loaded"
+    rules = {rule.get("name"): rule for rule in group["rules"]}
+    expected = {"shop:api_requests:rate5m", "shop:api_success_ratio:rate5m",
+                "shop:api_p95_latency_seconds:rate5m", "ShopApiTargetUnavailable",
+                "ShopApiErrorBudgetBurning", "ShopApiLatencyHigh"}
+    assert expected <= rules.keys(), "Shop SLO rules missing"
+    for name in expected:
+        rule = rules[name]
+        assert rule.get("health") == "ok" and not rule.get("lastError"), f"Rule evaluation failed: {name}"
+        evaluated = rule.get("lastEvaluation")
+        assert evaluated and not evaluated.startswith("0001"), f"Rule not evaluated: {name}"
+
+
+def verify_panel_query(payload):
+    result = payload.get("results", {}).get("A", {})
+    assert result.get("status") == 200 and not result.get("error"), "Grafana panel query failed"
+    assert isinstance(result.get("frames"), list), "Grafana panel query frames missing"
 
 
 def main():
@@ -49,6 +72,10 @@ def main():
             result = prometheus("/api/v1/query?" + urllib.parse.urlencode({"query": query}))
             assert result["status"] == "success" and result["data"]["result"], "Missing metric series"
     eventually(series_ready)
+
+    def rules_ready():
+        verify_rules(prometheus("/api/v1/rules"))
+    eventually(rules_ready)
 
     def hpa_ready():
         hpa = kubectl("get", "hpa", "api", "-n", "shop", "-o", "json")
@@ -72,23 +99,39 @@ def main():
         try:
             opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
-            def grafana(path):
+            def grafana(path, data=None):
                 assert forward.poll() is None, "Grafana port-forward stopped"
-                request = urllib.request.Request(f"http://127.0.0.1:{port}{path}",
-                                                 headers={"Authorization": authorization})
+                request = urllib.request.Request(
+                    f"http://127.0.0.1:{port}{path}",
+                    data=json.dumps(data).encode() if data is not None else None,
+                    headers={"Authorization": authorization, "Content-Type": "application/json"})
                 with opener.open(request, timeout=10) as response:
                     return json.load(response)
 
             def dashboard_ready():
                 assert grafana("/api/health")["database"] == "ok"
                 dashboard = grafana("/api/dashboards/uid/kube-foundry-shop")["dashboard"]
-                assert len(dashboard["panels"]) == 8, "Dashboard panels missing"
+                assert len(dashboard["panels"]) == 10, "Dashboard panels missing"
+                assert {"API 5m success ratio", "Active local reliability alerts"} <= {
+                    panel["title"] for panel in dashboard["panels"]}
+                assert dashboard.get("refresh") in dashboard.get("timepicker", {}).get("refresh_intervals", []), \
+                    "Configured dashboard refresh interval is not offered"
                 assert grafana("/api/datasources/uid/prometheus")["type"] == "prometheus"
+                for panel in dashboard["panels"]:
+                    if panel["title"] not in {"API 5m success ratio", "Active local reliability alerts"}:
+                        continue
+                    now = int(time.time() * 1000)
+                    query = {"refId": "A", "expr": panel["targets"][0]["expr"],
+                             "datasource": {"uid": "prometheus", "type": "prometheus"},
+                             "instant": True, "range": False, "format": "time_series",
+                             "intervalMs": 15000, "maxDataPoints": 1}
+                    verify_panel_query(grafana("/api/ds/query", {
+                        "from": str(now - 300000), "to": str(now), "queries": [query]}))
             eventually(dashboard_ready)
         finally:
             forward.terminate()
             forward.wait(timeout=10)
-    print("PASS: Grafana health, provisioned dashboard, and Prometheus datasource", flush=True)
+    print("PASS: Grafana health, dashboard provisioning, datasource, and both reliability panel queries", flush=True)
 
     def budgets_ready():
         budgets = kubectl("get", "pdb", "-n", "shop", "-o", "json")["items"]

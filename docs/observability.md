@@ -31,13 +31,51 @@ Grafana is at `http://127.0.0.1:3000`; Prometheus is at `http://127.0.0.1:9090`.
 
 Grafana's generated credentials are in the `monitoring-grafana` Secret in namespace `monitoring`, under `admin-user` and `admin-password`. Retrieve and decode them locally with an authorized Kubernetes client. Never paste them into Git, screenshots, or shared logs.
 
-The **kube-foundry / Shop** dashboard is provisioned from `gitops/platform/monitoring/shop.json`. Its eight panels cover replicas, scrape health, request rate, p95 latency, server errors, process memory, HPA desired replicas, and allowed disruptions. Request-rate and latency panels select `/api/` traffic rather than probe traffic. Generate requests with the smoke tests; empty latency data while idle is expected. Process memory is not total container memory.
+The **kube-foundry / Shop** dashboard is provisioned from `gitops/platform/monitoring/shop.json`. Its ten panels cover replicas, scrape health, request rate, p95 latency, server errors, process memory, HPA desired replicas, allowed disruptions, 5-minute API success ratio, and active local reliability alerts. Request-rate and latency panels select `/api/` traffic rather than probe traffic. Generate requests with the smoke tests; empty latency data while idle is expected. Process memory is not total container memory.
+
+## Local reliability signals (unreleased)
+
+The development branch adds two panels to the eight-panel v1.1 dashboard. These changes remain unreleased.
+`gitops/platform/monitoring/slo-rules.yaml` records the 5-minute API request rate, non-5xx response ratio,
+and p95 latency. Only recorded `/api/` responses from the `shop` namespace and `api` service are included.
+Redirects and client errors such as 404/422 do not count as server failures. The ratio divides by the actual
+positive request rate; an idle API or missing request metrics produce no ratio, displayed as
+**No traffic / no data**, rather than a fabricated success percentage.
+
+The local diagnostic alerts are:
+
+- **ShopApiTargetUnavailable:** any discovered scrape target is down, or all API targets are absent,
+  continuously for two minutes. Recovery clears the alert on the next evaluation.
+- **ShopApiErrorBudgetBurning:** more than 2% of recorded API responses are 5xx, with more than 0.1
+  requests/second, continuously for five minutes. The name is retained, but this is a fixed diagnostic
+  threshold, not a calculation against a defined SLO error budget.
+- **ShopApiLatencyHigh:** 5-minute p95 latency exceeds 750 ms with more than 0.1 requests/second,
+  continuously for five minutes.
+
+These signals cover instrumented API responses, not end-to-end availability: gateway failures and unhandled
+exceptions that bypass the API metrics middleware are not counted. No monthly SLO, paging configuration,
+or production availability guarantee is implied. Alertmanager remains disabled and sends no notifications.
+
+Run `make check-rules` with promtool 3.5.0 on PATH, or
+`python scripts/check-prometheus-rules.py --promtool /path/to/promtool`.
+CI downloads the pinned upstream binary and verifies its checksum. Tests execute the deployed expressions
+against healthy low traffic, idle/missing metrics, 4xx/5xx responses, latency, missing/failed targets,
+counter resets, recovery, and alert hold intervals. The Python suite also checks the owning Argo project's
+resource permission and rejects unhealthy or unevaluated live rules.
+
+For an existing disposable acceptance cluster, update the Argo project definitions before syncing the
+branch: `kubectl --context kind-kube-foundry-release apply -f gitops/projects.yaml`.
+The normal `make install` path already applies these definitions through `gitops-platform`.
+The added permission allows only `monitoring.coreos.com/PrometheusRule` within the platform project's
+existing destinations. Then sync the reviewed revision, run `make monitoring-check`, and inspect both new
+panels. A tagged v1.1 checkout retains its existing rules and dashboard behavior.
 
 ## Resource footprint and boundaries
 
 - Prometheus retains up to 24 hours of samples, with an 800 MB retention-size limit and a 1 GiB local PVC. Cluster deletion removes local storage; this is not a backup or durable monitoring service.
-- Alertmanager, default alert rules/dashboards, node exporter, and control-plane/kubelet scrapes are disabled. This is application-focused monitoring, not full cluster coverage or paging.
+- Alertmanager, default alert rules/dashboards, node exporter, and control-plane/kubelet scrapes are disabled. The project supplies only its three local diagnostic rules; this is application-focused monitoring, not full cluster coverage or paging.
 - Grafana is ephemeral. Dashboard and datasource provisioning are reproducible from configuration; manual UI changes are not durable.
+- Grafana requests 100 mCPU and 512 MiB memory, with limits of one CPU and 1 GiB. The former 300 mCPU/384 MiB limits caused startup/query timeouts and an out-of-memory restart during local default-refresh acceptance. The dashboard offers its configured 15-second refresh interval explicitly.
 - Automatic optional Grafana plugin installation is disabled in v1.0, avoiding unrelated downloads during startup.
 - kube-state-metrics provides workload, HPA, and disruption-budget state.
 - Only Prometheus-labeled Pods in namespace `monitoring` gain ingress to API TCP port 8000. NetworkPolicy restricts ports, not HTTP paths; this permission reaches more than `/metrics`. Existing default-deny policies remain in place.
@@ -55,11 +93,19 @@ The API HPA targets 60% CPU utilization relative to requests. Scale-up allows tw
 
 All five workloads have `minAvailable: 1` disruption budgets. Redundant API and web Pods can permit voluntary evictions. Singleton PostgreSQL, Redis, and worker budgets deliberately block eviction during node drain. They do not create high availability, protect against node failure, block direct Pod deletion, or govern Deployment rolling updates. Plan explicit maintenance and recovery for singleton workloads rather than forcing a drain and assuming the budgets preserve service. There are no cross-node placement guarantees.
 
-`make monitoring-check` verifies live API scrape targets, application and cluster metrics, HPA metric availability, Grafana health, the provisioned dashboard/datasource, and eviction admission. Evictions use server-side dry-run and do not remove Pods.
+`make monitoring-check` verifies live API scrape targets, application and cluster metrics, HPA metric availability, the loaded SLO rule group, Grafana health, the provisioned dashboard/datasource, both new panels through Grafana's datasource query API, and eviction admission. Idle success-ratio query results may be empty; backend errors fail the check. Transient socket timeouts retry within the existing deadline. Evictions use server-side dry-run and do not remove Pods.
 
 `make scaling-check` adds 90 seconds of bounded CPU load to one API Pod, verifies scale-up, then waits for ready replicas to return to the configured minimum. Run only on an idle local cluster. It changes replica count temporarily and can affect latency; it is not a throughput benchmark.
 
 ## Verification record
+
+Local combined-branch acceptance on 2026-10-04, including main revision `5d81d59`: all 27 Python tests, 25 promtool behavior scenarios, source/YAML lint, and chart/profile rendering passed. API, worker, and web images built locally and had zero high/critical findings with Trivy 0.74.0. Live admission/RBAC, monitoring (including both Grafana datasource queries), direct API and HTTP/HTTPS smoke checks passed. The bounded CPU exercise scaled API replicas from two to four and back to two ready replicas.
+
+With the default 15-second refresh actually enabled, the former 384 MiB Grafana cap caused an `OOMKilled` restart (exit 137). The revised defaults passed a five-minute run with 20 successful health/dashboard/query samples and no restart. The success-ratio panel showed 100% after smoke traffic and **No traffic / no data** when idle; the active-alert panel showed zero. These are local operator records, not an independent review or a production sizing guarantee.
+
+The combined manifests were applied locally to a disposable kind cluster with automatic Argo reconciliation paused for the unpublished tree. Exact Git-backed reconciliation of the new commit remains pending until the branch is published and that revision is synced; it is not included in the combined-branch acceptance claim. The release install path and tagged v1.1 artifacts remain unchanged.
+
+Actual captures from that run: [traffic and zero alerts](images/grafana-slo-traffic.png), [idle/no-data and zero alerts](images/grafana-slo-idle.png). Both use the revised resource defaults and the dashboard's configured 15-second refresh.
 
 Verified on the local three-node kind cluster on 2026-09-19: healthy API scrape targets, populated results for all eight dashboard queries, Grafana dashboard and datasource provisioning, CPU-driven scale-up from two to four replicas and recovery to two, permitted API eviction dry-run, and denied database eviction dry-run. The complete deployment was reapplied successfully with existing credentials. All three environment profiles passed server-side dry-run; security checks and direct/HTTPS application smoke tests passed.
 
