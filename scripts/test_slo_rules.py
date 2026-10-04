@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import Mock, patch
 
 import yaml
 
@@ -10,6 +11,36 @@ ROOT = Path(__file__).parents[1]
 
 
 class SloRules(unittest.TestCase):
+    def test_live_panel_query_verification_accepts_idle_and_rejects_backend_errors(self):
+        verify = module("check-observability").verify_panel_query
+        verify({"results": {"A": {"status": 200, "frames": []}}})
+        for result in [{"status": 500, "frames": []},
+                       {"status": 200, "frames": [], "error": "query timeout"},
+                       {"status": 200}]:
+            with self.subTest(result=result), self.assertRaises(AssertionError):
+                verify({"results": {"A": result}})
+        with self.assertRaises(AssertionError):
+            verify({"results": {}})
+
+    def test_live_check_retries_transient_socket_timeout_within_deadline(self):
+        check = module("check-observability")
+        request = Mock(side_effect=[TimeoutError("read timed out"), {"ready": True}])
+        with patch.object(check.time, "monotonic", side_effect=[0, 1]), \
+                patch.object(check.time, "sleep") as sleep:
+            self.assertEqual(check.eventually(request, timeout=5), {"ready": True})
+        self.assertEqual(request.call_count, 2)
+        sleep.assert_called_once_with(3)
+
+    def test_live_check_does_not_retry_socket_timeout_beyond_deadline(self):
+        check = module("check-observability")
+        request = Mock(side_effect=TimeoutError("read timed out"))
+        with patch.object(check.time, "monotonic", side_effect=[0, 5]), \
+                patch.object(check.time, "sleep") as sleep:
+            with self.assertRaises(TimeoutError):
+                check.eventually(request, timeout=5)
+        self.assertEqual(request.call_count, 1)
+        sleep.assert_not_called()
+
     def test_rule_resource_is_allowed_by_owning_argocd_project(self):
         child = yaml.safe_load((ROOT / "gitops/children/platform.yaml").read_text())
         projects = list(yaml.safe_load_all((ROOT / "gitops/projects.yaml").read_text()))
@@ -64,6 +95,7 @@ class SloRules(unittest.TestCase):
 
     def test_dashboard_uses_recording_rules_and_alert_state(self):
         dashboard = json.loads((ROOT / "gitops/platform/monitoring/shop.json").read_text())
+        self.assertIn(dashboard["refresh"], dashboard["timepicker"]["refresh_intervals"])
         panels = {panel["title"]: panel for panel in dashboard["panels"]}
         self.assertEqual(len(panels), 10)
         self.assertEqual(

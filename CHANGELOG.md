@@ -5,7 +5,8 @@
 - Add local 5-minute API reliability signals and Prometheus diagnostic alerts without introducing paging or a production SLO commitment.
 - Permit PrometheusRule resources in the platform Argo project; handle low traffic, idle periods, client errors, and missing targets correctly.
 - Evaluate deployed expressions with pinned promtool in CI, and reject missing or failed live rule evaluations.
-- Live cluster acceptance and release of these changes remain pending.
+- Give Grafana bounded startup/query headroom, offer the configured 15-second dashboard refresh interval, and verify both reliability panels through its datasource API.
+- Retry transient monitoring socket timeouts within the existing deadline; these changes remain unreleased.
 - State the live limits in the README: no application authentication, `shop`-only default-deny, unused all-interfaces kind host ports 80/443, no TLS on PostgreSQL or Redis, and operator acceptance records rather than an independent review.
 
 ## v1.1.0 - 2026-09-29
