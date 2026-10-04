@@ -1,6 +1,6 @@
 # v1.1 operational proof
 
-Three bounded workflows: promote reviewed image digests through Git, undo the promotion with a Git revert, and diagnose policy rejection and database recovery. No new platform controllers, application features, or production environments.
+Three bounded workflows: promote operator-selected image digests through Git, undo the promotion with a Git revert, and diagnose policy rejection and database recovery. No new platform controllers, application features, or production environments. The recorded results are an operator exercise, not an independent security review.
 
 ## Safety and prerequisites
 

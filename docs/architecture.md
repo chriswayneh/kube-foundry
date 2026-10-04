@@ -6,7 +6,7 @@ The `shop` namespace contains five deployed workloads: web, API, worker, Postgre
 
 Envoy Gateway manages a proxy in `envoy-gateway-system`. A Gateway and HTTPRoute in `shop` expose the frontend and API under `shop.localhost`, with `/api` taking precedence over `/`. Paths are preserved because FastAPI already serves `/api`. Both HTTP and HTTPS listeners use the same routes. cert-manager maintains the TLS Secret from a namespaced self-signed Issuer and Certificate.
 
-The proxy Service is ClusterIP. A loopback port-forward exposes HTTP on 8080 and HTTPS on 8443 without a host-network Pod or external load balancer. NetworkPolicy allows only this Gateway's proxy Pods in `envoy-gateway-system` to reach the API and web ports. The frontend makes API requests from the browser, so its Pod needs no API or database egress. See [traffic configuration](traffic.md).
+The proxy Service is ClusterIP. A loopback port-forward exposes HTTP on 8080 and HTTPS on 8443 without a host-network Pod or external load balancer. NetworkPolicy in `shop` allows only this Gateway's proxy Pods in `envoy-gateway-system` to reach the API and web ports. That default-deny does not extend to platform namespaces. The frontend makes API requests from the browser, so its Pod needs no API or database egress. PostgreSQL and Redis are not configured for TLS. See [traffic configuration](traffic.md) and the [security model](security.md).
 
 ```mermaid
 sequenceDiagram

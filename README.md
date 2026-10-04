@@ -1,8 +1,19 @@
 # kube-foundry
 
-A local Kubernetes reference platform for deploying containerized applications, validating platform changes, and testing recovery without cloud infrastructure.
+A local Kubernetes reference platform for deploying containerized applications, validating platform changes, and testing recovery without cloud infrastructure. It is not a hosted product or a production service.
 
-**v1.1.0** adds verified Git-backed promotion and rollback, policy-remediation proof, and checksum-linked recovery evidence to the three-node kind platform. The sample application creates and lists items and processes background jobs. Its purpose is to exercise the platform, not to provide an authenticated commerce service.
+## Live limits
+
+These match the manifests and the default install path. Feature sections below do not widen them.
+
+- **No application authentication.** Creating and listing items and queueing jobs requires no user identity. The API process also serves `/metrics`, `/docs`, and `/openapi.json` with no credentials. The Gateway routes only `/api` to that process; anything allowed to open TCP port 8000 can call the rest.
+- **Not highly available.** PostgreSQL, Redis, and the worker are single replicas. Backups are manual logical database dumps, not scheduled off-cluster protection or Redis queue recovery. There is no paging. Staging and prod overlays are configuration examples, not separate operated environments.
+- **Loopback is the supported application path. The default kind file is not loopback-only.** `make gateway-access` binds `127.0.0.1`. `clusters/kind/cluster.yaml` publishes host ports 80 and 443 and does not set `listenAddress`, so [kind binds all interfaces](https://kind.sigs.k8s.io/docs/user/configuration/) (`0.0.0.0`). The shop Gateway Service is ClusterIP and is not attached to those host ports. `clusters/kind/verification.yaml` omits the mappings.
+- **TLS stops at the local Gateway.** The certificate is self-signed, and HTTP is served as well as HTTPS with no redirect. PostgreSQL and Redis are not configured for TLS (`postgres:17.11-alpine3.24` with no certificates; Redis is `requirepass` only), so queries and passwords cross the pod network in the clear. Metrics Server is started with `--kubelet-insecure-tls` for kind's kubelet certificates.
+- **Default-deny is the `shop` namespace, not the cluster.** Cilium enforces the NetworkPolicies in that namespace. Restricted Pod Security and the Kyverno policies are also scoped to `shop`. Envoy, Argo CD, monitoring, Kyverno, and `kube-system` are not default-deny. Platform controllers keep the broad privileges from their charts.
+- **Acceptance records are operator exercises, not an independent review.** The v1.0 and v1.1 notes describe checks run on a local kind cluster. This repository does not claim a third-party security review, penetration test, or certification.
+
+**v1.1.0** adds a Git-backed promotion and rollback exercise, a policy-remediation dry-run, and checksum-linked recovery evidence on the three-node kind platform. The sample application creates and lists items and processes background jobs. Its purpose is to exercise the platform, not to provide an authenticated service.
 
 [Release v1.1.0](https://github.com/chriswayneh/kube-foundry/releases/tag/v1.1.0) | [Quick start](#run-v11) | [Operational proof](docs/operational-proof.md) | [Roadmap](docs/phases.md)
 
@@ -27,7 +38,7 @@ flowchart LR
     Grafana --> Prom
 ```
 
-Helm bootstraps the platform controllers. Argo CD reconciles the shop application and platform configuration. Cilium enforces default-deny application networking. [Architecture and ownership](docs/architecture.md).
+Helm bootstraps the platform controllers. Argo CD reconciles the shop application and platform configuration. Cilium enforces default-deny networking in the `shop` namespace. [Architecture and ownership](docs/architecture.md).
 
 ## Run v1.1
 
@@ -66,10 +77,10 @@ add Prometheus rules and two dashboard panels. They are unreleased and await liv
 
 The platform applies zero-trust principles to application networking and workload permissions. Running inside the cluster does not by itself grant access to another workload or the Kubernetes API.
 
-- **Explicit network paths:** Cilium enforces default-deny application ingress and egress, with documented allowances for required traffic.
+- **Explicit network paths in `shop`:** Cilium enforces default-deny ingress and egress in that namespace, with documented allowances for required traffic. Other namespaces are not covered.
 - **Least-privilege identities:** workload service accounts have no RoleBindings and do not mount API tokens. The namespace-scoped observer cannot read Secrets, exec into Pods, or change workloads.
 - **Enforced workload constraints:** restricted Pod Security and Kyverno admission policies constrain what can run, alongside non-root execution and dropped capabilities.
-- **Verification evidence:** policy checks exercise allowed and denied operations. Release acceptance records what was actually tested.
+- **Operator evidence:** policy checks exercise allowed and denied operations. Release notes record what was run locally. That is not an independent review.
 
 This is not a complete zero-trust architecture: application endpoints have no user authentication, and the workstation, Docker daemon, control plane, and privileged platform administrators remain trusted. Local TLS does not provide application identity. See the [security model](docs/security.md), [policy checks](policy/README.md), and [release limitations](docs/release.md#release-contract).
 
@@ -95,11 +106,9 @@ The release acceptance checks cover a clean three-node install, HTTPS item/job r
 
 ## Scope and limitations
 
-This is a **local reference platform**, not a hosted product or production-ready service. Application endpoints have no user authentication. PostgreSQL, Redis, and the worker are singletons; disruption budgets do not make them highly available. Backups are manual logical database dumps, not scheduled off-cluster protection or Redis queue recovery.
+The [live limits](#live-limits) are the support boundary. Automatic pruning is also disabled, so removing a manifest from Git does not delete the live object. The workstation, Docker daemon, kind control plane, and platform administrators are trusted.
 
-Access stays on loopback. Certificates are self-signed, Metrics Server has a kind-only kubelet TLS exception, and platform controllers retain privileged administrative roles. Automatic pruning is disabled. Staging/prod overlays are examples, not independently operated environments.
-
-Production would require reviewed promotions, trusted TLS and identity, stronger data availability, encrypted off-cluster backups, alerting, and additional controller isolation. Those are optional follow-on projects, not missing v1.0 features.
+A production deployment would still need identity, trusted certificates, encrypted data stores, stronger data availability, encrypted off-cluster backups, alerting, controller isolation, and a promotion process that has actually been reviewed. Those are follow-on projects. This repository does not provide them.
 
 ## Project status
 
