@@ -2,6 +2,12 @@
 
 A local Kubernetes reference platform for deploying containerized applications, validating platform changes, and testing recovery without cloud infrastructure. It is not a hosted product or a production service.
 
+## What this is
+
+In plain words: kube-foundry builds a small three-node Kubernetes cluster on your own computer with kind, then installs a sample shop app the way a platform team would. Argo CD deploys it from Git, network and admission policies limit what the app can do, and tested steps show how to promote a new image, roll back, and restore the database.
+
+What it shows: GitOps delivery, Kubernetes access control (RBAC) and policy, TLS routing, monitoring, and recovery drills. It is a learning and reference lab, not production, and the sample app has no user sign-in.
+
 ## Live limits
 
 These match the manifests and the default install path. Feature sections below do not widen them.
@@ -15,7 +21,20 @@ These match the manifests and the default install path. Feature sections below d
 
 **v1.1.0** adds a Git-backed promotion and rollback exercise, a policy-remediation dry-run, and checksum-linked recovery evidence on the three-node kind platform. The sample application creates and lists items and processes background jobs. Its purpose is to exercise the platform, not to provide an authenticated service.
 
-[Release v1.1.0](https://github.com/chriswayneh/kube-foundry/releases/tag/v1.1.0) | [Quick start](#run-v11) | [Operational proof](docs/operational-proof.md) | [Roadmap](docs/phases.md)
+[Release v1.1.0](https://github.com/chriswayneh/kube-foundry/releases/tag/v1.1.0) | [Quick start](#quick-start) | [Operational proof](docs/operational-proof.md) | [Roadmap](docs/phases.md)
+
+## Quick start
+
+Needs Docker, kind, kubectl, Helm, GNU Make, Python 3.13+, Git, curl, and about 16 GB of Docker memory. Exact versions are in [Run v1.1](#run-v11).
+
+```bash
+git clone --branch v1.1.0 https://github.com/chriswayneh/kube-foundry.git && cd kube-foundry
+make init-env && make cluster
+make install GITOPS_REVISION=v1.1.0
+make gateway-access
+```
+
+Then open **https://shop.localhost:8443** while the port-forward runs. The certificate is self-signed.
 
 ## Architecture
 
