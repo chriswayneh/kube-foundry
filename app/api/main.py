@@ -5,6 +5,7 @@ import logging
 import os
 import time
 import uuid
+from urllib.parse import quote
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
@@ -14,6 +15,7 @@ import redis
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
+from psycopg.conninfo import make_conninfo
 from psycopg.rows import dict_row
 
 
@@ -60,21 +62,50 @@ def dependency_checks_enabled() -> bool:
     return os.getenv("DEPENDENCY_CHECKS_ENABLED", "false").lower() == "true"
 
 
+def required_env(name: str, fallback: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"{name} is required when {fallback} is not set")
+    return value
+
+
+def database_url() -> str:
+    value = os.getenv("DATABASE_URL")
+    if value:
+        return value
+    return make_conninfo(
+        host=os.getenv("PGHOST", "postgres"),
+        port=os.getenv("PGPORT", "5432"),
+        dbname=required_env("POSTGRES_DB", "DATABASE_URL"),
+        user=required_env("POSTGRES_USER", "DATABASE_URL"),
+        password=required_env("POSTGRES_PASSWORD", "DATABASE_URL"),
+    )
+
+
+def redis_url() -> str:
+    value = os.getenv("REDIS_URL")
+    if value:
+        return value
+    password = quote(required_env("REDIS_PASSWORD", "REDIS_URL"), safe="")
+    return f"redis://:{password}@{os.getenv('REDIS_HOST', 'redis')}:6379/0"
+
+
+DEFAULT_PG_OPTIONS = "-c statement_timeout=5000 -c lock_timeout=2000"
+
+
+def pg_options() -> str:
+    """Server options for every connection (statement and lock timeouts)."""
+    return os.getenv("PG_OPTIONS", DEFAULT_PG_OPTIONS)
+
+
 def db_connection() -> psycopg.Connection[Any]:
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        raise RuntimeError("DATABASE_URL is required")
     return psycopg.connect(
-        database_url, connect_timeout=3, row_factory=dict_row,
-        options=os.getenv("PG_OPTIONS", "-c statement_timeout=5000 -c lock_timeout=2000"),
+        database_url(), connect_timeout=3, row_factory=dict_row, options=pg_options()
     )
 
 
 def redis_connection() -> redis.Redis:
-    redis_url = os.getenv("REDIS_URL")
-    if not redis_url:
-        raise RuntimeError("REDIS_URL is required")
-    return redis.from_url(redis_url, socket_connect_timeout=3, socket_timeout=3, decode_responses=True)
+    return redis.from_url(redis_url(), socket_connect_timeout=3, socket_timeout=3, decode_responses=True)
 
 
 def ensure_schema() -> None:
@@ -117,7 +148,7 @@ async def observe_request(request: Request, call_next):
     response = await call_next(request)
     duration = time.perf_counter() - started
     route = request.scope.get("route")
-    path = getattr(route, "path", request.url.path)
+    path = getattr(route, "path", "__unmatched__")
     REQUESTS.labels(request.method, path, str(response.status_code)).inc()
     LATENCY.labels(request.method, path).observe(duration)
     logger.info(
