@@ -6,8 +6,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import pytest
-
-sync_api = pytest.importorskip("playwright.sync_api")
+from playwright import sync_api
 
 WEB = Path(__file__).resolve().parents[1]
 ORIGIN = "http://shop.test"
@@ -94,3 +93,21 @@ def test_a_new_item_stays_visible_past_the_first_page_and_is_not_duplicated(brow
     page.click("#load-more")
     sync_api.expect(page.locator("#items li")).to_have_count(61)
     sync_api.expect(page.locator("#items li", has_text="fresh · #61")).to_have_count(1)
+
+
+def test_a_full_first_page_of_exactly_50_shows_load_more_until_an_empty_page(browser):
+    api = FakeApi(50)
+    page = open_page(browser, api)
+    sync_api.expect(page.locator("#items li")).to_have_count(50)
+    sync_api.expect(page.locator("#load-more")).to_be_visible()
+
+    page.click("#load-more")
+    sync_api.expect(page.locator("#load-more")).to_be_hidden()
+    assert api.queries[-1]["after_id"] == "50"
+    sync_api.expect(page.locator("#items li")).to_have_count(50)
+
+
+def test_a_first_page_of_49_keeps_load_more_hidden(browser):
+    page = open_page(browser, FakeApi(49))
+    sync_api.expect(page.locator("#items li")).to_have_count(49)
+    sync_api.expect(page.locator("#load-more")).to_be_hidden()
