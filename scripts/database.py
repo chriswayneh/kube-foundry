@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -48,7 +49,8 @@ def main():
     if args.operation == "backup":
         args.output.parent.mkdir(parents=True, exist_ok=True)
         # Exclusive create avoids accidentally replacing another backup.
-        with args.output.open("xb") as handle:
+        fd = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "wb") as handle:
             subprocess.run(command(args.context,
                                    'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc --no-acl'),
                            stdout=handle, check=True)
