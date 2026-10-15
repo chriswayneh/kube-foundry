@@ -108,6 +108,14 @@ class Job(BaseModel):
     updated_at: datetime
 
 
+UNMATCHED_PATH = "__unmatched__"
+
+
+def route_label(request: Request) -> str:
+    """Route template for metrics labels; one shared label for unmatched paths."""
+    return getattr(request.scope.get("route"), "path", UNMATCHED_PATH)
+
+
 @app.middleware("http")
 async def observe_request(request: Request, call_next):
     started = time.perf_counter()
@@ -115,14 +123,13 @@ async def observe_request(request: Request, call_next):
         response = await call_next(request)
     except Exception:
         duration = time.perf_counter() - started
-        path = getattr(request.scope.get("route"), "path", request.url.path)
+        path = route_label(request)
         REQUESTS.labels(request.method, path, "500").inc()
         LATENCY.labels(request.method, path).observe(duration)
         logger.exception("request_failed", extra={"method": request.method, "path": path, "status_code": 500})
         raise
     duration = time.perf_counter() - started
-    route = request.scope.get("route")
-    path = getattr(route, "path", "__unmatched__")
+    path = route_label(request)
     REQUESTS.labels(request.method, path, str(response.status_code)).inc()
     LATENCY.labels(request.method, path).observe(duration)
     logger.info(
