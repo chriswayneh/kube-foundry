@@ -5,6 +5,23 @@ name: CI
 permissions:
   contents: read
 jobs:
+  app-tests:
+    # Pull requests only: installs the PR's own test requirements, so it never
+    # runs in the privileged workflow_call context (gitops-image-update).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: App unit tests
+        run: |
+          python -m pip install -r app/tests/requirements.txt pytest-timeout pytest-cov
+          python -m pytest -q --timeout=60 --cov=app --cov-branch app/tests
   validate:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
