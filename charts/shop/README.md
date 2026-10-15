@@ -22,3 +22,7 @@ helm upgrade --install shop charts/shop --namespace shop-helm \
 ```
 
 PostgreSQL and Redis intentionally remain single replicas. PVC sizes are initial provisioning values, not an automated storage migration mechanism. Do not shrink PVCs or change a StatefulSet claim template in place. See [packaging and environments](../../docs/packaging.md).
+
+## Single worker
+
+`worker.replicas` must be 1 (the schema enforces `maximum: 1`) and the worker Deployment uses the `Recreate` strategy. At startup the worker moves everything in the shared `jobs:processing` Redis list back to `jobs`; a second live worker would have its in-flight jobs requeued and run twice. Scaling out needs per-worker processing lists, a lease, or Redis Streams with `XAUTOCLAIM` first.

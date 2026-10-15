@@ -103,7 +103,9 @@
         },
         "replicas": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 1,
+          "description": "Must be 1: the worker's startup sweep of jobs:processing is only safe with a single replica."
         }
       }
     },

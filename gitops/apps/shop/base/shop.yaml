@@ -659,6 +659,10 @@ metadata:
   namespace: shop
 spec:
   replicas: 1
+  # Single worker only: never run an old and a new pod side by side, because
+  # each one requeues the shared jobs:processing list at startup.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/component: worker
@@ -704,6 +708,16 @@ spec:
         image: "kube-foundry-worker:0.1.0"
         imagePullPolicy: IfNotPresent
         name: worker
+        startupProbe:
+          exec:
+            command: ["sh", "-c", "test -f /tmp/worker-heartbeat"]
+          periodSeconds: 3
+          failureThreshold: 40
+        livenessProbe:
+          exec:
+            command: ["sh", "-c", "test $(( $(date +%s) - $(stat -c %Y /tmp/worker-heartbeat) )) -lt 30"]
+          periodSeconds: 10
+          failureThreshold: 3
         resources:
           limits:
             cpu: 200m
