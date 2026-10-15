@@ -2,14 +2,7 @@ fastapi==0.141.1
 prometheus-client==0.26.0
 pydantic==2.13.5
 redis==8.1.0
-<<<<<<< HEAD
-psycopg[binary]
-httpx
-fakeredis
-pytest
-=======
 psycopg[binary]==3.3.5
 httpx==0.28.1
 fakeredis==2.40.0
 pytest==9.1.1
->>>>>>> fix/worker-reliable-dequeue

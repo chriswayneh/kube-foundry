@@ -29,3 +29,56 @@ def test_sweep_repushes_pending_jobs(api, monkeypatch):
     assert api.dispatch_pending_jobs() == 1
     assert q.lrange("jobs", 0, -1) == [ROW["id"]]
     assert conn.commits == 1
+
+
+def test_sweep_sql_selects_only_old_pending_jobs_and_touches_them(api, monkeypatch):
+    conn = FakeConn(lambda sql, p: FakeCursor([{"id": ROW["id"]}] if sql.startswith("SELECT") else []))
+    monkeypatch.setattr(api, "db_connection", lambda: conn)
+    monkeypatch.setattr(api, "redis_connection", lambda: fakeredis.FakeRedis(decode_responses=True))
+    api.dispatch_pending_jobs(older_than_seconds=45)
+    select_sql, select_params = conn.calls[0]
+    assert select_sql == (
+        "SELECT id FROM jobs WHERE status = 'pending' "
+        "AND updated_at < NOW() - make_interval(secs => %s) LIMIT 500"
+    )
+    assert select_params == (45,)
+    update_sql, update_params = conn.calls[1]
+    assert update_sql == "UPDATE jobs SET updated_at = NOW() WHERE id = %s AND status = 'pending'"
+    assert update_params == (ROW["id"],)
+
+
+def test_background_loop_runs_the_sweep(api, monkeypatch):
+    import asyncio
+
+    calls = []
+
+    def sweep():
+        calls.append(1)
+        if len(calls) >= 2:
+            raise asyncio.CancelledError
+        return 1
+
+    monkeypatch.setattr(api, "dispatch_pending_jobs", sweep)
+
+    async def go():
+        try:
+            await api.dispatch_loop(interval=0)
+        except asyncio.CancelledError:
+            pass
+
+    asyncio.run(go())
+    assert len(calls) == 2
+
+
+def test_lifespan_starts_dispatcher_when_dependencies_enabled(api, monkeypatch):
+    monkeypatch.setenv("DEPENDENCY_CHECKS_ENABLED", "true")
+    monkeypatch.setattr(api, "ensure_schema", lambda: None)
+    started = []
+
+    async def fake_loop(interval=0):
+        started.append(True)
+
+    monkeypatch.setattr(api, "dispatch_loop", fake_loop)
+    with TestClient(api.app):
+        pass
+    assert started == [True]

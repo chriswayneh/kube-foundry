@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -80,12 +81,31 @@ def ensure_schema() -> None:
         connection.commit()
 
 
+DISPATCH_INTERVAL_SECONDS = float(os.getenv("JOB_DISPATCH_INTERVAL_SECONDS", "30"))
+
+
+async def dispatch_loop(interval: float = DISPATCH_INTERVAL_SECONDS) -> None:
+    """Background outbox sweep: re-enqueue jobs whose push failed."""
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            count = await asyncio.to_thread(dispatch_pending_jobs)
+            if count:
+                logger.info("jobs_redispatched", extra={"job_id": f"{count} jobs"})
+        except Exception:
+            logger.exception("job_dispatch_failed")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    dispatcher = None
     if dependency_checks_enabled():
         ensure_schema()
+        dispatcher = asyncio.create_task(dispatch_loop())
     logger.info("api_started")
     yield
+    if dispatcher is not None:
+        dispatcher.cancel()
     logger.info("api_stopped")
 
 
