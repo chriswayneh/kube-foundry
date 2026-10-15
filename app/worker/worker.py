@@ -32,6 +32,7 @@ handler.setFormatter(JsonFormatter())
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), handlers=[handler], force=True)
 logger = logging.getLogger("kube_foundry.worker")
 stopping = False
+HEARTBEAT = __import__("pathlib").Path(os.getenv("HEARTBEAT_FILE", "/tmp/worker-heartbeat"))
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS items (
@@ -100,6 +101,7 @@ def run() -> None:
 
     logger.info("worker_started")
     while not stopping:
+        HEARTBEAT.touch()
         try:
             result = queue.blpop("jobs", timeout=2)
             if result is None:
