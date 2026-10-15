@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Unmatched request paths are recorded under one `__unmatched__` metrics label instead of one series per URL.
 - Prepare development image promotions on reviewed branches instead of pushing protected main; reject stale or mixed-scope digest promotions without expanding workflow permissions.
 - Add local 5-minute API reliability signals and Prometheus diagnostic alerts without introducing paging or a production SLO commitment.
 - Permit PrometheusRule resources in the platform Argo project; handle low traffic, idle periods, client errors, and missing targets correctly.
