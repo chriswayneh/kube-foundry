@@ -9,6 +9,10 @@ metadata:
     app.kubernetes.io/part-of: kube-foundry
 spec:
   replicas: 1
+  # Single worker only: the startup sweep of jobs:processing must never run
+  # while another worker pod is still processing.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: shop

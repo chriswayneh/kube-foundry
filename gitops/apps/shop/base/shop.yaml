@@ -712,6 +712,16 @@ spec:
         image: "kube-foundry-worker:0.1.0"
         imagePullPolicy: IfNotPresent
         name: worker
+        startupProbe:
+          exec:
+            command: ["sh", "-c", "test -f /tmp/worker-heartbeat"]
+          periodSeconds: 3
+          failureThreshold: 40
+        livenessProbe:
+          exec:
+            command: ["sh", "-c", "test $(( $(date +%s) - $(stat -c %Y /tmp/worker-heartbeat) )) -lt 30"]
+          periodSeconds: 10
+          failureThreshold: 3
         resources:
           limits:
             cpu: 200m

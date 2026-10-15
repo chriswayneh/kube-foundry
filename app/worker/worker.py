@@ -6,6 +6,7 @@ import os
 import signal
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
@@ -34,6 +35,7 @@ handler.setFormatter(JsonFormatter())
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), handlers=[handler], force=True)
 logger = logging.getLogger("kube_foundry.worker")
 stopping = False
+HEARTBEAT = Path(os.getenv("HEARTBEAT_FILE", "/tmp/worker-heartbeat"))
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS items (
@@ -167,6 +169,7 @@ def run() -> None:
 
     logger.info("worker_started")
     while not stopping:
+        HEARTBEAT.touch()
         job_id = None
         try:
             # Atomically move the job to a processing list so a crash or DB

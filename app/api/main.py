@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -12,7 +13,7 @@ from typing import Any
 
 import psycopg
 import redis
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
 from psycopg.conninfo import make_conninfo
@@ -114,12 +115,31 @@ def ensure_schema() -> None:
         connection.commit()
 
 
+DISPATCH_INTERVAL_SECONDS = float(os.getenv("JOB_DISPATCH_INTERVAL_SECONDS", "30"))
+
+
+async def dispatch_loop(interval: float = DISPATCH_INTERVAL_SECONDS) -> None:
+    """Background outbox sweep: re-enqueue jobs whose push failed."""
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            count = await asyncio.to_thread(dispatch_pending_jobs)
+            if count:
+                logger.info("jobs_redispatched", extra={"job_id": f"{count} jobs"})
+        except Exception:
+            logger.exception("job_dispatch_failed")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    dispatcher = None
     if dependency_checks_enabled():
         ensure_schema()
+        dispatcher = asyncio.create_task(dispatch_loop())
     logger.info("api_started")
     yield
+    if dispatcher is not None:
+        dispatcher.cancel()
     logger.info("api_stopped")
 
 
@@ -212,10 +232,13 @@ def readyz() -> dict[str, Any]:
 
 
 @app.get("/api/items", response_model=list[Item])
-def list_items() -> list[dict[str, Any]]:
+def list_items(
+    after_id: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)
+) -> list[dict[str, Any]]:
     with db_connection() as connection:
         rows = connection.execute(
-            "SELECT id, name, created_at FROM items ORDER BY id"
+            "SELECT id, name, created_at FROM items WHERE id > %s ORDER BY id LIMIT %s",
+            (after_id, limit),
         ).fetchall()
     return list(rows)
 
@@ -243,20 +266,34 @@ def create_job() -> dict[str, Any]:
             (job_id,),
         ).fetchone()
         connection.commit()
+    # Do NOT mark the job failed on an RPUSH error: the push may have been
+    # delivered (ambiguous timeout). The job stays 'pending' and is re-pushed
+    # by dispatch_pending_jobs(); the worker's claim is idempotent.
     try:
         redis_connection().rpush("jobs", str(job_id))
-    except Exception as exc:
-        with db_connection() as connection:
-            connection.execute(
-                "UPDATE jobs SET status = 'failed', updated_at = NOW() WHERE id = %s",
-                (job_id,),
-            )
-            connection.commit()
-        raise HTTPException(status_code=503, detail="queue unavailable") from exc
-    logger.info("job_queued", extra={"job_id": str(job_id)})
+        logger.info("job_queued", extra={"job_id": str(job_id)})
+    except Exception:
+        logger.exception("job_enqueue_deferred", extra={"job_id": str(job_id)})
     if row is None:
         raise HTTPException(status_code=500, detail="job insert returned no row")
     return row
+
+
+def dispatch_pending_jobs(older_than_seconds: int = 30) -> int:
+    """Outbox sweep: re-enqueue jobs stuck in 'pending'. Run periodically
+    (e.g. a CronJob or background task)."""
+    with db_connection() as connection:
+        rows = connection.execute(
+            "SELECT id FROM jobs WHERE status = 'pending' "
+            "AND updated_at < NOW() - make_interval(secs => %s) LIMIT 500",
+            (older_than_seconds,),
+        ).fetchall()
+        queue = redis_connection()
+        for row in rows:
+            queue.rpush("jobs", str(row["id"]))
+            connection.execute("UPDATE jobs SET updated_at = NOW() WHERE id = %s AND status = 'pending'", (row["id"],))
+        connection.commit()
+    return len(rows)
 
 
 @app.get("/api/jobs/{job_id}", response_model=Job)
