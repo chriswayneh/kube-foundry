@@ -7,8 +7,11 @@ const more = document.querySelector("#load-more");
 // There is no next-page marker: a full page means there may be more.
 const PAGE_SIZE = 50;
 let lastId = 0;
+// Ids already on screen, so a pinned new item is not rendered twice when paging reaches it.
+const shown = new Set();
 
 function renderRow(item) {
+  shown.add(item.id);
   const row = document.createElement("li");
   row.textContent = `${item.name} · #${item.id}`;
   return row;
@@ -17,12 +20,13 @@ function renderRow(item) {
 async function loadPage(reset) {
   if (reset) {
     lastId = 0;
+    shown.clear();
     list.replaceChildren();
   }
   const response = await fetch(`/api/items?after_id=${lastId}&limit=${PAGE_SIZE}`);
   if (!response.ok) throw new Error("Could not load items");
   const items = await response.json();
-  list.append(...items.map(renderRow));
+  list.append(...items.filter((item) => !shown.has(item.id)).map(renderRow));
   if (items.length) lastId = items[items.length - 1].id;
   more.hidden = items.length < PAGE_SIZE;
 }
@@ -46,9 +50,12 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify({name}),
     });
     if (!response.ok) throw new Error("Could not create item");
+    const created = await response.json();
     form.reset();
     message.textContent = "Item created.";
     await loadItems();
+    // The first page holds only the oldest PAGE_SIZE items; keep the new one visible anyway.
+    if (!shown.has(created.id)) list.append(renderRow(created));
   } catch (error) {
     message.textContent = error.message;
   }
