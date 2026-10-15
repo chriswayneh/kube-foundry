@@ -60,6 +60,16 @@ spec:
         image: {{ .Values.worker.image | quote }}
         imagePullPolicy: IfNotPresent
         name: worker
+        startupProbe:
+          exec:
+            command: ["sh", "-c", "test -f /tmp/worker-heartbeat"]
+          periodSeconds: 3
+          failureThreshold: 40
+        livenessProbe:
+          exec:
+            command: ["sh", "-c", "test $(( $(date +%s) - $(stat -c %Y /tmp/worker-heartbeat) )) -lt 30"]
+          periodSeconds: 10
+          failureThreshold: 3
         resources:
 {{ toYaml .Values.worker.resources | indent 10 }}
         securityContext:
