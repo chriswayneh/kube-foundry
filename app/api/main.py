@@ -63,14 +63,18 @@ def dependency_checks_enabled() -> bool:
 def db_connection() -> psycopg.Connection[Any]:
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
-        raise RuntimeError("DATABASE_URL is required")
+        from psycopg.conninfo import make_conninfo
+        database_url = make_conninfo(host=os.getenv("PGHOST", "postgres"), port=os.getenv("PGPORT", "5432"),
+                                     dbname=os.environ["POSTGRES_DB"], user=os.environ["POSTGRES_USER"],
+                                     password=os.environ["POSTGRES_PASSWORD"])
     return psycopg.connect(database_url, connect_timeout=3, row_factory=dict_row)
 
 
 def redis_connection() -> redis.Redis:
     redis_url = os.getenv("REDIS_URL")
     if not redis_url:
-        raise RuntimeError("REDIS_URL is required")
+        from urllib.parse import quote
+        redis_url = f"redis://:{quote(os.environ['REDIS_PASSWORD'], safe='')}@{os.getenv('REDIS_HOST', 'redis')}:6379/0"
     return redis.from_url(redis_url, socket_connect_timeout=3, socket_timeout=3, decode_responses=True)
 
 

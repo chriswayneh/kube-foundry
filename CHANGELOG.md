@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Database and Redis passwords are no longer interpolated raw into connection URLs in the chart; the apps build URLs with proper quoting (`DATABASE_URL`/`REDIS_URL` still win if set).
 - Prepare development image promotions on reviewed branches instead of pushing protected main; reject stale or mixed-scope digest promotions without expanding workflow permissions.
 - Add local 5-minute API reliability signals and Prometheus diagnostic alerts without introducing paging or a production SLO commitment.
 - Permit PrometheusRule resources in the platform Argo project; handle low traffic, idle periods, client errors, and missing targets correctly.

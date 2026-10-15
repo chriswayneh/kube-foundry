@@ -55,16 +55,20 @@ def stop(_: int, __: Any) -> None:
 
 def database_url() -> str:
     value = os.getenv("DATABASE_URL")
-    if not value:
-        raise RuntimeError("DATABASE_URL is required")
-    return value
+    if value:
+        return value
+    from psycopg.conninfo import make_conninfo
+    return make_conninfo(host=os.getenv("PGHOST", "postgres"), port=os.getenv("PGPORT", "5432"),
+                         dbname=os.environ["POSTGRES_DB"], user=os.environ["POSTGRES_USER"],
+                         password=os.environ["POSTGRES_PASSWORD"])
 
 
 def redis_url() -> str:
     value = os.getenv("REDIS_URL")
-    if not value:
-        raise RuntimeError("REDIS_URL is required")
-    return value
+    if value:
+        return value
+    from urllib.parse import quote
+    return f"redis://:{quote(os.environ['REDIS_PASSWORD'], safe='')}@{os.getenv('REDIS_HOST', 'redis')}:6379/0"
 
 
 def ensure_schema() -> None:
