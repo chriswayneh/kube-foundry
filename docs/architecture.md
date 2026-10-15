@@ -49,3 +49,7 @@ Prometheus discovers API metrics through a ServiceMonitor and an explicit networ
 `charts/shop` packages the application resources. `make render-shop` produces the committed Kustomize base, and `make check-chart` checks it for drift. Dev, staging, and prod overlays adjust stateless replica counts, API requests, hostnames, and explicit image tags. Each environment runs in a separate cluster with the same namespace and resource names. Platform controllers and GatewayClass are installed independently; runtime Secrets are never rendered into Git.
 
 Earlier profiles use kind-loaded development images tagged `0.1.0`. Phase 8 adds a delivery overlay: GitHub Actions builds and scans each image, publishes commit-SHA tags, and commits registry digests after anonymous pull verification. Argo CD owns application reconciliation while Helm remains responsible for bootstrapping platform controllers. See [GitOps ownership and delivery](gitops.md).
+
+## Database timeouts
+
+The API and the worker open every PostgreSQL connection through one helper that passes libpq `options`. By default that is `-c statement_timeout=5000 -c lock_timeout=2000`: a statement is cancelled after 5 seconds and a lock wait after 2 seconds. Set `PG_OPTIONS` on the container to override the whole string; both processes read it the same way at connection time. A cancelled statement surfaces as a `psycopg` error: the API returns 500 and the worker releases the job back to the queue.

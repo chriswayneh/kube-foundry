@@ -1,16 +1,36 @@
-def test_api_and_worker_pass_statement_and_lock_timeouts(api, worker, monkeypatch):
+import pytest
+
+from conftest import FakeConn, FakeCursor
+
+EXPECTED = "-c statement_timeout=5000 -c lock_timeout=2000"
+
+
+def test_api_connection_uses_exact_default_options(api, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql://x")
+    monkeypatch.delenv("PG_OPTIONS", raising=False)
     got = []
-    monkeypatch.setattr(api.psycopg, "connect", lambda *a, **k: got.append(k) or None)
+    monkeypatch.setattr(api.psycopg, "connect", lambda *a, **k: got.append(k))
     api.db_connection()
-    assert "statement_timeout=5000" in got[0]["options"] and "lock_timeout=2000" in got[0]["options"]
+    assert got[0]["options"] == EXPECTED
 
-    class C:
-        def __enter__(s): return s
-        def __exit__(s, *a): return False
-        def execute(s, *a): pass
-        def commit(s): pass
 
-    monkeypatch.setattr(worker.psycopg, "connect", lambda *a, **k: got.append(k) or C())
-    worker.update_status("j", "complete")
-    assert got[1]["options"] == worker.PG_OPTIONS and "statement_timeout" in worker.PG_OPTIONS
+@pytest.mark.parametrize("call", ["ensure_schema", "update_status", "claim"])
+def test_every_worker_connection_uses_exact_default_options(worker, monkeypatch, call):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://x")
+    monkeypatch.delenv("PG_OPTIONS", raising=False)
+    got = []
+
+    def connect(*a, **k):
+        got.append(k)
+        return FakeConn(lambda sql, p: FakeCursor(rowcount=1))
+
+    monkeypatch.setattr(worker.psycopg, "connect", connect)
+    {"ensure_schema": lambda: worker.ensure_schema(),
+     "update_status": lambda: worker.update_status("j", "complete"),
+     "claim": lambda: worker.claim("j")}[call]()
+    assert [k["options"] for k in got] == [EXPECTED]
+
+
+def test_api_and_worker_read_pg_options_the_same_way(api, worker, monkeypatch):
+    monkeypatch.setenv("PG_OPTIONS", "-c statement_timeout=100")
+    assert api.pg_options() == worker.pg_options() == "-c statement_timeout=100"
