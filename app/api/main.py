@@ -111,7 +111,15 @@ class Job(BaseModel):
 @app.middleware("http")
 async def observe_request(request: Request, call_next):
     started = time.perf_counter()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration = time.perf_counter() - started
+        path = getattr(request.scope.get("route"), "path", request.url.path)
+        REQUESTS.labels(request.method, path, "500").inc()
+        LATENCY.labels(request.method, path).observe(duration)
+        logger.exception("request_failed", extra={"method": request.method, "path": path, "status_code": 500})
+        raise
     duration = time.perf_counter() - started
     route = request.scope.get("route")
     path = getattr(route, "path", request.url.path)
