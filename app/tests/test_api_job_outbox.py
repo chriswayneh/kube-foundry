@@ -82,3 +82,63 @@ def test_lifespan_starts_dispatcher_when_dependencies_enabled(api, monkeypatch):
     with TestClient(api.app):
         pass
     assert started == [True]
+
+
+def test_a_failed_sweep_is_logged_and_the_loop_runs_again(api, monkeypatch):
+    import asyncio
+
+    calls = []
+
+    def sweep():
+        calls.append(1)
+        if len(calls) == 1:
+            raise RuntimeError("redis briefly down")
+        raise asyncio.CancelledError
+
+    monkeypatch.setattr(api, "dispatch_pending_jobs", sweep)
+
+    async def go():
+        try:
+            await api.dispatch_loop(interval=0)
+        except asyncio.CancelledError:
+            pass
+
+    asyncio.run(go())
+    assert len(calls) == 2
+
+
+def test_lifespan_exit_cancels_the_dispatcher(api, monkeypatch):
+    import asyncio
+
+    monkeypatch.setenv("DEPENDENCY_CHECKS_ENABLED", "true")
+    monkeypatch.setattr(api, "ensure_schema", lambda: None)
+    state = {}
+
+    async def forever(interval=0):
+        state["started"] = True
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            state["cancelled"] = True
+            raise
+
+    monkeypatch.setattr(api, "dispatch_loop", forever)
+    real_info = api.logger.info
+
+    async def settle():
+        await asyncio.sleep(0)
+
+    def info(message, *args, **kwargs):
+        if message == "api_stopped":
+            # Let the cancellation be delivered, then record whether the
+            # lifespan itself requested it (not the test client's teardown).
+            state["cancel_requested"] = all(
+                t.cancelling() for t in asyncio.all_tasks() if t.get_coro().__name__ == "forever"
+            ) and any(t.get_coro().__name__ == "forever" for t in asyncio.all_tasks())
+        return real_info(message, *args, **kwargs)
+
+    monkeypatch.setattr(api.logger, "info", info)
+    with TestClient(api.app):
+        pass
+    assert state.get("started") is True
+    assert state.get("cancel_requested") is True
