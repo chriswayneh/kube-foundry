@@ -6,6 +6,7 @@ import logging
 import os
 import time
 import uuid
+from urllib.parse import quote
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
@@ -15,6 +16,7 @@ import redis
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
+from psycopg.conninfo import make_conninfo
 from psycopg.rows import dict_row
 
 
@@ -61,18 +63,40 @@ def dependency_checks_enabled() -> bool:
     return os.getenv("DEPENDENCY_CHECKS_ENABLED", "false").lower() == "true"
 
 
+def required_env(name: str, fallback: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"{name} is required when {fallback} is not set")
+    return value
+
+
+def database_url() -> str:
+    value = os.getenv("DATABASE_URL")
+    if value:
+        return value
+    return make_conninfo(
+        host=os.getenv("PGHOST", "postgres"),
+        port=os.getenv("PGPORT", "5432"),
+        dbname=required_env("POSTGRES_DB", "DATABASE_URL"),
+        user=required_env("POSTGRES_USER", "DATABASE_URL"),
+        password=required_env("POSTGRES_PASSWORD", "DATABASE_URL"),
+    )
+
+
+def redis_url() -> str:
+    value = os.getenv("REDIS_URL")
+    if value:
+        return value
+    password = quote(required_env("REDIS_PASSWORD", "REDIS_URL"), safe="")
+    return f"redis://:{password}@{os.getenv('REDIS_HOST', 'redis')}:6379/0"
+
+
 def db_connection() -> psycopg.Connection[Any]:
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        raise RuntimeError("DATABASE_URL is required")
-    return psycopg.connect(database_url, connect_timeout=3, row_factory=dict_row)
+    return psycopg.connect(database_url(), connect_timeout=3, row_factory=dict_row)
 
 
 def redis_connection() -> redis.Redis:
-    redis_url = os.getenv("REDIS_URL")
-    if not redis_url:
-        raise RuntimeError("REDIS_URL is required")
-    return redis.from_url(redis_url, socket_connect_timeout=3, socket_timeout=3, decode_responses=True)
+    return redis.from_url(redis_url(), socket_connect_timeout=3, socket_timeout=3, decode_responses=True)
 
 
 def ensure_schema() -> None:
@@ -128,13 +152,28 @@ class Job(BaseModel):
     updated_at: datetime
 
 
+UNMATCHED_PATH = "__unmatched__"
+
+
+def route_label(request: Request) -> str:
+    """Route template for metrics labels; one shared label for unmatched paths."""
+    return getattr(request.scope.get("route"), "path", UNMATCHED_PATH)
+
+
 @app.middleware("http")
 async def observe_request(request: Request, call_next):
     started = time.perf_counter()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration = time.perf_counter() - started
+        path = route_label(request)
+        REQUESTS.labels(request.method, path, "500").inc()
+        LATENCY.labels(request.method, path).observe(duration)
+        logger.exception("request_failed", extra={"method": request.method, "path": path, "status_code": 500})
+        raise
     duration = time.perf_counter() - started
-    route = request.scope.get("route")
-    path = getattr(route, "path", "__unmatched__")
+    path = route_label(request)
     REQUESTS.labels(request.method, path, str(response.status_code)).inc()
     LATENCY.labels(request.method, path).observe(duration)
     logger.info(
