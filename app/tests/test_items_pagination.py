@@ -27,3 +27,20 @@ def test_default_limit_is_50_and_paging_returns_each_item_once(api, monkeypatch)
         seen += [r["id"] for r in page]
         after = page[-1]["id"]
     assert seen == list(range(1, 121))
+
+
+def test_list_sql_and_params(api, monkeypatch):
+    conn = FakeConn(responder)
+    monkeypatch.setattr(api, "db_connection", lambda: conn)
+    TestClient(api.app).get("/api/items?after_id=7&limit=3")
+    sql, params = conn.calls[0]
+    assert sql == "SELECT id, name, created_at FROM items WHERE id > %s ORDER BY id LIMIT %s"
+    assert params == (7, 3)
+
+
+def test_web_ui_pages_with_after_id():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    js = (root / "app/web/app.js").read_text()
+    assert "after_id=${lastId}" in js and 'id="load-more"' in (root / "app/web/index.html").read_text()

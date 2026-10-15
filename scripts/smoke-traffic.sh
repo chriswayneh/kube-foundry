@@ -53,11 +53,12 @@ http / | grep -q 'id="item-form"'
 http /api/items | python -c 'import json,sys; assert isinstance(json.load(sys.stdin), list)'
 https https://$SHOP_HOST:18443/ | grep -q 'id="item-form"'
 https https://$SHOP_HOST:18443/app.js | grep -q '/api/items'
-https -X POST -H 'Content-Type: application/json' -d '{"name":"traffic-smoke-item"}' \
+item_id=$(https -X POST -H 'Content-Type: application/json' -d '{"name":"traffic-smoke-item"}' \
   https://$SHOP_HOST:18443/api/items |
-  python -c 'import json,sys; assert json.load(sys.stdin)["name"] == "traffic-smoke-item"'
-https https://$SHOP_HOST:18443/api/items |
-  python -c 'import json,sys; assert any(i["name"] == "traffic-smoke-item" for i in json.load(sys.stdin))'
+  python -c 'import json,sys; i=json.load(sys.stdin); assert i["name"] == "traffic-smoke-item"; print(i["id"])')
+# The list is paginated (default 50), so look the new item up directly by id.
+https "https://$SHOP_HOST:18443/api/items?after_id=$((item_id - 1))&limit=1" |
+  python -c 'import json,sys; i=json.load(sys.stdin); assert [x["name"] for x in i] == ["traffic-smoke-item"]'
 
 # An unknown API path must remain an API 404, not fall through to the SPA.
 code=$(curl --noproxy '*' --silent --show-error --max-time 10 --output /dev/null --write-out '%{http_code}' \
