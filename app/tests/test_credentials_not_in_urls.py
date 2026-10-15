@@ -1,3 +1,4 @@
+import pytest
 from urllib.parse import urlparse, unquote
 
 from psycopg.conninfo import conninfo_to_dict
@@ -32,3 +33,31 @@ def test_api_builds_safe_conninfo(api, monkeypatch):
     monkeypatch.setattr(api.redis, "from_url", lambda url, **k: seen2.setdefault("url", url))
     api.redis_connection()
     assert unquote(urlparse(seen2["url"]).password) == PW
+
+
+@pytest.mark.parametrize("missing", ["POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"])
+def test_missing_db_variable_is_a_clear_error(worker, api, monkeypatch, missing):
+    env(monkeypatch)
+    monkeypatch.delenv(missing)
+    for module in (worker, api):
+        with pytest.raises(RuntimeError, match=f"{missing} is required when DATABASE_URL is not set"):
+            module.database_url()
+
+
+def test_missing_redis_password_is_a_clear_error(worker, api, monkeypatch):
+    env(monkeypatch)
+    monkeypatch.delenv("REDIS_PASSWORD")
+    for module in (worker, api):
+        with pytest.raises(RuntimeError, match="REDIS_PASSWORD is required when REDIS_URL is not set"):
+            module.redis_url()
+
+
+def test_no_manifest_embeds_a_password_in_a_url():
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    for path in list((root / "clusters").rglob("*.yaml")) + list((root / "charts").rglob("*.yaml")) + [
+        root / "gitops/apps/shop/base/shop.yaml"
+    ]:
+        assert not re.search(r"\$\((POSTGRES|REDIS)_PASSWORD\)@", path.read_text()), path
