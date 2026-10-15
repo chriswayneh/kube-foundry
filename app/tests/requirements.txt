@@ -1,0 +1,8 @@
+fastapi==0.141.1
+prometheus-client==0.26.0
+pydantic==2.13.5
+redis==8.1.0
+psycopg[binary]
+httpx
+fakeredis
+pytest

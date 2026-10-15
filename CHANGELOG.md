@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Job creation no longer marks a job failed when the Redis push errors (the push may have landed); the job stays pending and `dispatch_pending_jobs()` re-enqueues it.
 - Prepare development image promotions on reviewed branches instead of pushing protected main; reject stale or mixed-scope digest promotions without expanding workflow permissions.
 - Add local 5-minute API reliability signals and Prometheus diagnostic alerts without introducing paging or a production SLO commitment.
 - Permit PrometheusRule resources in the platform Argo project; handle low traffic, idle periods, client errors, and missing targets correctly.
