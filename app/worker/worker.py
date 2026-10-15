@@ -82,6 +82,43 @@ def update_status(job_id: str, state: str) -> None:
         connection.commit()
 
 
+PROCESSING = "jobs:processing"
+
+
+def claim(job_id: str) -> bool:
+    """Idempotent pending/running -> running transition."""
+    with psycopg.connect(database_url(), connect_timeout=3) as connection:
+        cur = connection.execute(
+            "UPDATE jobs SET status = 'running', updated_at = NOW() "
+            "WHERE id = %s AND status IN ('pending', 'running')",
+            (job_id,),
+        )
+        connection.commit()
+        return cur.rowcount == 1
+
+
+def release(queue: "redis.Redis", job_id: str) -> None:
+    """Put a job that failed mid-processing back on the queue for a retry.
+
+    Covers a DB error in claim() or update_status() after blmove. If Redis is
+    also down, the job stays in the processing list and the startup sweep
+    (requeue_orphans) returns it.
+    """
+    try:
+        if queue.lrem(PROCESSING, 1, job_id):
+            queue.rpush("jobs", job_id)
+    except redis.RedisError:
+        logger.exception("job_release_failed", extra={"job_id": job_id})
+
+
+def requeue_orphans(queue: "redis.Redis") -> None:
+    """On startup, push back jobs left in the processing list by a dead worker.
+    NOTE: with replicas > 1 use per-worker processing lists or a lease
+    (or Redis Streams + XAUTOCLAIM) instead of this global sweep."""
+    while queue.lmove(PROCESSING, "jobs", src="RIGHT", dest="LEFT") is not None:
+        pass
+
+
 def run() -> None:
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
@@ -93,6 +130,7 @@ def run() -> None:
         try:
             ensure_schema()
             queue.ping()
+            requeue_orphans(queue)
             break
         except Exception:
             logger.exception("dependency_connect_failed")
@@ -100,18 +138,28 @@ def run() -> None:
 
     logger.info("worker_started")
     while not stopping:
+        job_id = None
         try:
-            result = queue.blpop("jobs", timeout=2)
-            if result is None:
+            # Atomically move the job to a processing list so a crash or DB
+            # error after dequeue does not lose it; it is only removed (acked)
+            # after the final status is committed.
+            moved = queue.blmove("jobs", PROCESSING, timeout=2, src="LEFT", dest="RIGHT")
+            if moved is None:
                 continue
-            _, job_id = result
-            update_status(job_id, "running")
+            job_id = str(moved)
+            if not claim(job_id):
+                # Already complete/failed (duplicate delivery): just ack.
+                queue.lrem(PROCESSING, 1, job_id)
+                continue
             logger.info("job_started", extra={"job_id": job_id})
             time.sleep(0.25)
             update_status(job_id, "complete")
+            queue.lrem(PROCESSING, 1, job_id)
             logger.info("job_completed", extra={"job_id": job_id})
         except (redis.RedisError, psycopg.Error):
             logger.exception("job_processing_failed")
+            if job_id is not None:
+                release(queue, job_id)
             time.sleep(2)
     logger.info("worker_stopped")
 
