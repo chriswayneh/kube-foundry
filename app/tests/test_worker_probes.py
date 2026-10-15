@@ -37,3 +37,11 @@ def test_chart_probes_use_heartbeat_file_and_30s_threshold(worker):
     assert paths == {str(worker.HEARTBEAT)}
     liveness = text.split("livenessProbe:", 1)[1].split("resources:", 1)[0]
     assert re.search(r"-lt 30\b", liveness)
+
+
+def test_startup_probe_runs_the_heartbeat_file_check(worker):
+    startup = CHART.read_text().split("startupProbe:", 1)[1].split("livenessProbe:", 1)[0]
+    command = re.search(r"command:\s*\[(.*)\]", startup)
+    assert command, "startupProbe must use an exec command"
+    args = [a.strip().strip('"') for a in command.group(1).split(",")]
+    assert args == ["sh", "-c", f"test -f {worker.HEARTBEAT}"]
