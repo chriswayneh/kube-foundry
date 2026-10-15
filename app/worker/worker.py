@@ -8,8 +8,10 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import psycopg
+from psycopg.conninfo import make_conninfo
 import redis
 
 
@@ -55,18 +57,32 @@ def stop(_: int, __: Any) -> None:
     stopping = True
 
 
+def required_env(name: str, fallback: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"{name} is required when {fallback} is not set")
+    return value
+
+
 def database_url() -> str:
     value = os.getenv("DATABASE_URL")
-    if not value:
-        raise RuntimeError("DATABASE_URL is required")
-    return value
+    if value:
+        return value
+    return make_conninfo(
+        host=os.getenv("PGHOST", "postgres"),
+        port=os.getenv("PGPORT", "5432"),
+        dbname=required_env("POSTGRES_DB", "DATABASE_URL"),
+        user=required_env("POSTGRES_USER", "DATABASE_URL"),
+        password=required_env("POSTGRES_PASSWORD", "DATABASE_URL"),
+    )
 
 
 def redis_url() -> str:
     value = os.getenv("REDIS_URL")
-    if not value:
-        raise RuntimeError("REDIS_URL is required")
-    return value
+    if value:
+        return value
+    password = quote(required_env("REDIS_PASSWORD", "REDIS_URL"), safe="")
+    return f"redis://:{password}@{os.getenv('REDIS_HOST', 'redis')}:6379/0"
 
 
 def ensure_schema() -> None:

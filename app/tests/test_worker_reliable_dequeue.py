@@ -128,4 +128,9 @@ def test_chart_pins_single_worker():
     root = Path(__file__).resolve().parents[2]
     schema = json.loads((root / "charts/shop/values.schema.json").read_text())
     assert schema["properties"]["worker"]["properties"]["replicas"]["maximum"] == 1
+    import yaml
+
     assert "type: Recreate" in (root / "charts/shop/templates/deployment-worker.yaml").read_text()
+    kind = yaml.safe_load((root / "clusters/kind/manifests/phase3/worker.yaml").read_text())
+    assert kind["spec"]["replicas"] == 1
+    assert kind["spec"]["strategy"] == {"type": "Recreate"}

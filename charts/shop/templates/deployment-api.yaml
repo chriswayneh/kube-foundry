@@ -46,10 +46,12 @@ spec:
             secretKeyRef:
               key: REDIS_PASSWORD
               name: {{ .Values.existingSecret }}
-        - name: DATABASE_URL
-          value: postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)
-        - name: REDIS_URL
-          value: redis://:$(REDIS_PASSWORD)@redis:6379/0
+        - name: PGHOST
+          value: postgres
+        - name: PGPORT
+          value: "5432"
+        - name: REDIS_HOST
+          value: redis
         envFrom:
         - configMapRef:
             name: shop-config
