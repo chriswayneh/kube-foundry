@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `GET /api/items` is now paginated with `after_id` and `limit` (default 50, max 200). Behaviour change: callers that expected every item in one response must page (pass the last id as `after_id`; there is no next-page marker). The web UI gains a "Load more" button and the traffic smoke test looks its item up by id. See docs/architecture.md.
 - Worker writes a heartbeat file each loop; the chart adds startup and liveness exec probes for it.
 - Job creation no longer marks a job failed when the Redis push errors (the push may have landed); the request still returns 202 with the job `pending`, and the API re-enqueues pending jobs older than 30 seconds from a background sweep every 30 seconds (`JOB_DISPATCH_INTERVAL_SECONDS`). Known limit: each API replica runs its own sweep, so a stuck job can be pushed more than once; the worker's idempotent claim makes the duplicate a no-op.
 - Worker no longer loses a job when the database fails after dequeue: jobs move to `jobs:processing` until complete, claims are idempotent, and orphans are requeued at startup; a DB error mid-job puts the job back on the queue. The worker is limited to one replica (`values.schema.json` `maximum: 1`, `Recreate` strategy). CI now runs the app unit tests.

@@ -13,7 +13,7 @@ from typing import Any
 
 import psycopg
 import redis
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field
 from psycopg.conninfo import make_conninfo
@@ -222,10 +222,13 @@ def readyz() -> dict[str, Any]:
 
 
 @app.get("/api/items", response_model=list[Item])
-def list_items() -> list[dict[str, Any]]:
+def list_items(
+    after_id: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)
+) -> list[dict[str, Any]]:
     with db_connection() as connection:
         rows = connection.execute(
-            "SELECT id, name, created_at FROM items ORDER BY id"
+            "SELECT id, name, created_at FROM items WHERE id > %s ORDER BY id LIMIT %s",
+            (after_id, limit),
         ).fetchall()
     return list(rows)
 

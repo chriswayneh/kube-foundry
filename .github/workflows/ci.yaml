@@ -79,3 +79,18 @@ jobs:
           persist-credentials: false
       - name: Build and scan
         run: bash scripts/ci-image.sh '${{ matrix.component }}' scan
+  web-ui:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r app/web/tests/requirements.txt
+      - run: python -m playwright install --with-deps chromium
+      - name: Items page behaviour against a mocked API
+        run: python -m pytest -q -p no:cacheprovider --timeout=60 app/web/tests
