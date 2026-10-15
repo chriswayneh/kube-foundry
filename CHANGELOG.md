@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Worker no longer loses a job when the database fails after dequeue: jobs move to `jobs:processing` until complete, claims are idempotent, and orphans are requeued at startup; a DB error mid-job puts the job back on the queue. The worker is limited to one replica (`values.schema.json` `maximum: 1`, `Recreate` strategy). CI now runs the app unit tests.
 - `scripts/database.py backup` creates the dump file with mode 0600 regardless of umask.
 - Database and Redis passwords are no longer interpolated raw into connection URLs in the chart; the apps build URLs with proper quoting (`DATABASE_URL`/`REDIS_URL` still win if set). The phase 2 and phase 3 kind manifests no longer embed passwords either, and a missing `POSTGRES_*` or `REDIS_PASSWORD` variable fails with a clear error naming it.
 - Unhandled API exceptions are now counted as status 500 in `http_requests_total` and latency.
