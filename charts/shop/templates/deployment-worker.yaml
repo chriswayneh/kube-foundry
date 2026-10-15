@@ -9,6 +9,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: {{ .Values.worker.replicas }}
+  # Single worker only: never run an old and a new pod side by side, because
+  # each one requeues the shared jobs:processing list at startup.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/component: worker

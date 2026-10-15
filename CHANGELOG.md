@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Worker no longer loses a job when the database fails after dequeue: jobs move to `jobs:processing` until complete, claims are idempotent, and orphans are requeued at startup (single worker replica only).
+- Worker no longer loses a job when the database fails after dequeue: jobs move to `jobs:processing` until complete, claims are idempotent, and orphans are requeued at startup; a DB error mid-job puts the job back on the queue. The worker is limited to one replica (`values.schema.json` `maximum: 1`, `Recreate` strategy). CI now runs the app unit tests.
 - Unmatched request paths are recorded under one `__unmatched__` metrics label instead of one series per URL.
 - Prepare development image promotions on reviewed branches instead of pushing protected main; reject stale or mixed-scope digest promotions without expanding workflow permissions.
 - Add local 5-minute API reliability signals and Prometheus diagnostic alerts without introducing paging or a production SLO commitment.

@@ -37,6 +37,10 @@ jobs:
           yamllint -d relaxed gitops/apps/shop/base/shop.yaml examples/secrets/dummy-secret.enc.yaml
           ruff check app scripts
           python -m unittest discover -s scripts -p 'test_*.py'
+      - name: App unit tests
+        run: |
+          python -m pip install -r app/tests/requirements.txt pytest-timeout pytest-cov
+          python -m pytest -q --timeout=60 --cov=app --cov-branch app/tests
       - name: Render charts and all delivery profiles
         run: make validate
       - name: Evaluate Prometheus rules
