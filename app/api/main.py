@@ -114,7 +114,7 @@ async def observe_request(request: Request, call_next):
     response = await call_next(request)
     duration = time.perf_counter() - started
     route = request.scope.get("route")
-    path = getattr(route, "path", request.url.path)
+    path = getattr(route, "path", "__unmatched__")
     REQUESTS.labels(request.method, path, str(response.status_code)).inc()
     LATENCY.labels(request.method, path).observe(duration)
     logger.info(
