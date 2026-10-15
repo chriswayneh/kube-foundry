@@ -73,8 +73,11 @@ def ensure_schema() -> None:
         connection.commit()
 
 
+PG_OPTIONS = os.getenv("PG_OPTIONS", "-c statement_timeout=5000 -c lock_timeout=2000")
+
+
 def update_status(job_id: str, state: str) -> None:
-    with psycopg.connect(database_url(), connect_timeout=3) as connection:
+    with psycopg.connect(database_url(), connect_timeout=3, options=PG_OPTIONS) as connection:
         connection.execute(
             "UPDATE jobs SET status = %s, updated_at = NOW() WHERE id = %s",
             (state, job_id),

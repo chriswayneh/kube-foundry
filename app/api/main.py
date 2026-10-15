@@ -64,7 +64,10 @@ def db_connection() -> psycopg.Connection[Any]:
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise RuntimeError("DATABASE_URL is required")
-    return psycopg.connect(database_url, connect_timeout=3, row_factory=dict_row)
+    return psycopg.connect(
+        database_url, connect_timeout=3, row_factory=dict_row,
+        options=os.getenv("PG_OPTIONS", "-c statement_timeout=5000 -c lock_timeout=2000"),
+    )
 
 
 def redis_connection() -> redis.Redis:
