@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Database and Redis passwords are no longer interpolated raw into connection URLs in the chart; the apps build URLs with proper quoting (`DATABASE_URL`/`REDIS_URL` still win if set). The phase 2 and phase 3 kind manifests no longer embed passwords either, and a missing `POSTGRES_*` or `REDIS_PASSWORD` variable fails with a clear error naming it.
 - Unhandled API exceptions are now counted as status 500 in `http_requests_total` and latency.
 - Unmatched request paths are recorded under one `__unmatched__` metrics label instead of one series per URL.
 - Prepare development image promotions on reviewed branches instead of pushing protected main; reject stale or mixed-scope digest promotions without expanding workflow permissions.
