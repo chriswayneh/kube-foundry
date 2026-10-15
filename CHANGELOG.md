@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Worker writes a heartbeat file each loop; the chart adds startup and liveness exec probes for it.
+- Job creation no longer marks a job failed when the Redis push errors (the push may have landed); the request still returns 202 with the job `pending`, and the API re-enqueues pending jobs older than 30 seconds from a background sweep every 30 seconds (`JOB_DISPATCH_INTERVAL_SECONDS`). Known limit: each API replica runs its own sweep, so a stuck job can be pushed more than once; the worker's idempotent claim makes the duplicate a no-op.
 - Worker no longer loses a job when the database fails after dequeue: jobs move to `jobs:processing` until complete, claims are idempotent, and orphans are requeued at startup; a DB error mid-job puts the job back on the queue. The worker is limited to one replica (`values.schema.json` `maximum: 1`, `Recreate` strategy). CI now runs the app unit tests.
 - `scripts/database.py backup` creates the dump file with mode 0600 regardless of umask.
 - Database and Redis passwords are no longer interpolated raw into connection URLs in the chart; the apps build URLs with proper quoting (`DATABASE_URL`/`REDIS_URL` still win if set). The phase 2 and phase 3 kind manifests no longer embed passwords either, and a missing `POSTGRES_*` or `REDIS_PASSWORD` variable fails with a clear error naming it.
