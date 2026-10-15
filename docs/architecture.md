@@ -53,3 +53,7 @@ Earlier profiles use kind-loaded development images tagged `0.1.0`. Phase 8 adds
 ## Item listing
 
 `GET /api/items` is paginated by id: `?after_id=<id>&limit=<n>` returns up to `limit` items with `id > after_id`, in id order. `after_id` defaults to 0 and `limit` defaults to **50** (maximum 200; larger values return 422). There is no next-page marker or total count: pass the last id you received as `after_id`, and stop when a page has fewer than `limit` items. The web UI does this with a "Load more" button.
+
+## Database timeouts
+
+The API and the worker open every PostgreSQL connection through one helper that passes libpq `options`. By default that is `-c statement_timeout=5000 -c lock_timeout=2000`: a statement is cancelled after 5 seconds and a lock wait after 2 seconds. Set `PG_OPTIONS` on the container to override the whole string; both processes read it the same way at connection time. A cancelled statement surfaces as a `psycopg` error: the API returns 500 and the worker releases the job back to the queue.

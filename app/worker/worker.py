@@ -85,14 +85,27 @@ def redis_url() -> str:
     return f"redis://:{password}@{os.getenv('REDIS_HOST', 'redis')}:6379/0"
 
 
+DEFAULT_PG_OPTIONS = "-c statement_timeout=5000 -c lock_timeout=2000"
+
+
+def pg_options() -> str:
+    """Server options for every connection (statement and lock timeouts)."""
+    return os.getenv("PG_OPTIONS", DEFAULT_PG_OPTIONS)
+
+
+def db_connection() -> psycopg.Connection[Any]:
+    """The one place the worker connects, so every query gets the timeouts."""
+    return psycopg.connect(database_url(), connect_timeout=3, options=pg_options())
+
+
 def ensure_schema() -> None:
-    with psycopg.connect(database_url(), connect_timeout=3) as connection:
+    with db_connection() as connection:
         connection.execute(SCHEMA)
         connection.commit()
 
 
 def update_status(job_id: str, state: str) -> None:
-    with psycopg.connect(database_url(), connect_timeout=3) as connection:
+    with db_connection() as connection:
         connection.execute(
             "UPDATE jobs SET status = %s, updated_at = NOW() WHERE id = %s",
             (state, job_id),
@@ -105,7 +118,7 @@ PROCESSING = "jobs:processing"
 
 def claim(job_id: str) -> bool:
     """Idempotent pending/running -> running transition."""
-    with psycopg.connect(database_url(), connect_timeout=3) as connection:
+    with db_connection() as connection:
         cur = connection.execute(
             "UPDATE jobs SET status = 'running', updated_at = NOW() "
             "WHERE id = %s AND status IN ('pending', 'running')",

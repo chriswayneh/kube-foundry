@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- API and worker database connections set `statement_timeout=5s` and `lock_timeout=2s` on every connection, including the worker schema setup and job claim (override with `PG_OPTIONS`, read the same way by both; see docs/architecture.md).
 - `GET /api/items` is now paginated with `after_id` and `limit` (default 50, max 200). Behaviour change: callers that expected every item in one response must page (pass the last id as `after_id`; there is no next-page marker). The web UI gains a "Load more" button and the traffic smoke test looks its item up by id. See docs/architecture.md.
 - Worker writes a heartbeat file each loop; the chart adds startup and liveness exec probes for it.
 - Job creation no longer marks a job failed when the Redis push errors (the push may have landed); the request still returns 202 with the job `pending`, and the API re-enqueues pending jobs older than 30 seconds from a background sweep every 30 seconds (`JOB_DISPATCH_INTERVAL_SECONDS`). Known limit: each API replica runs its own sweep, so a stuck job can be pushed more than once; the worker's idempotent claim makes the duplicate a no-op.

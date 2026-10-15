@@ -91,8 +91,18 @@ def redis_url() -> str:
     return f"redis://:{password}@{os.getenv('REDIS_HOST', 'redis')}:6379/0"
 
 
+DEFAULT_PG_OPTIONS = "-c statement_timeout=5000 -c lock_timeout=2000"
+
+
+def pg_options() -> str:
+    """Server options for every connection (statement and lock timeouts)."""
+    return os.getenv("PG_OPTIONS", DEFAULT_PG_OPTIONS)
+
+
 def db_connection() -> psycopg.Connection[Any]:
-    return psycopg.connect(database_url(), connect_timeout=3, row_factory=dict_row)
+    return psycopg.connect(
+        database_url(), connect_timeout=3, row_factory=dict_row, options=pg_options()
+    )
 
 
 def redis_connection() -> redis.Redis:
