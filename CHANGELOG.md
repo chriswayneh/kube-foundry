@@ -18,6 +18,7 @@
 - Give Grafana bounded startup/query headroom, offer the configured 15-second dashboard refresh interval, and verify both reliability panels through its datasource API.
 - Retry transient monitoring socket timeouts within the existing deadline; these changes remain unreleased.
 - State the live limits in the README: no application authentication, `shop`-only default-deny, unused all-interfaces kind host ports 80/443, no TLS on PostgreSQL or Redis, and operator acceptance records rather than an independent review.
+- Refresh the web runtime's libx11 package (1.8.13 -> 1.8.14) to address CVE-2026-88806 (HIGH) found by the image scan; no scanner exceptions added.
 
 ## v1.1.0 - 2026-09-29
 
