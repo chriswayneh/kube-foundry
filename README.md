@@ -23,6 +23,12 @@ These match the manifests and the default install path. Feature sections below d
 
 [Release v1.1.0](https://github.com/chriswayneh/kube-foundry/releases/tag/v1.1.0) | [Quick start](#quick-start) | [Operational proof](docs/operational-proof.md) | [Roadmap](docs/phases.md)
 
+## Demo
+
+<p align="center"><img src="docs/assets/demo.gif" alt="kube-foundry demo recorded on main after v1.1.0: helm show chart, check-chart, validate offline without kind" width="100%"></p>
+
+The GIF was recorded on main after v1.1.0 (real `helm show chart`, then offline validate). No kind cluster. [Run the demo](docs/demo.md).
+
 ## Quick start
 
 Needs Docker, kind, kubectl, Helm, GNU Make, Python 3.13+, Git, curl, and about 16 GB of Docker memory. Exact versions are in [Run v1.1](#run-v11).
