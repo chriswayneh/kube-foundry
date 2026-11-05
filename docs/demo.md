@@ -1,14 +1,14 @@
 # Terminal demo
 
-The README GIF replays actual output captured from **kube-foundry v1.1.0** on
-2026-11-05 (America/Chicago). It runs only offline validation: Helm chart lint,
-rendered shop manifests, and `kubectl kustomize` over the GitOps overlays. No
-kind cluster is created, no images are pulled, and no cloud credentials or real
-hostnames are used. Timing is adjusted for README readability.
+The README GIF was recorded on **main after v1.1.0** on 2026-11-05
+(America/Chicago). It runs only offline validation: Helm chart metadata, chart
+lint, rendered shop manifests, and `kubectl kustomize` over the GitOps overlays.
+No kind cluster is created, no images are pulled, and no cloud credentials or
+real hostnames are used. Timing is adjusted for README readability.
 
 ## What it shows
 
-1. Confirm the checkout is ready.
+1. `helm show chart charts/shop` — real chart metadata from the checkout.
 2. `make check-chart` — `helm lint charts/shop` and render checks.
 3. `make validate` — kustomize render of GitOps/phase overlays plus `compileall`
    for the sample app and scripts.

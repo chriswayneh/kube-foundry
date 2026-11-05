@@ -25,9 +25,9 @@ These match the manifests and the default install path. Feature sections below d
 
 ## Demo
 
-<p align="center"><img src="docs/assets/demo.gif" alt="kube-foundry v1.1.0 demo: make check-chart and make validate offline without kind" width="100%"></p>
+<p align="center"><img src="docs/assets/demo.gif" alt="kube-foundry demo recorded on main after v1.1.0: helm show chart, check-chart, validate offline without kind" width="100%"></p>
 
-The GIF replays real v1.1.0 offline validation (Helm lint + kustomize). No kind cluster. [Run the demo](docs/demo.md).
+The GIF was recorded on main after v1.1.0 (real `helm show chart`, then offline validate). No kind cluster. [Run the demo](docs/demo.md).
 
 ## Quick start
 

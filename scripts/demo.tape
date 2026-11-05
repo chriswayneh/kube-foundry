@@ -20,9 +20,9 @@ Type `clear`
 Enter
 Show
 
-Type `printf 'kube-foundry v1.1.0 (offline validate; no kind)\n'`
+Type `helm show chart charts/shop`
 Enter
-Sleep 0.8s
+Sleep 1.2s
 
 Type `make check-chart`
 Enter
